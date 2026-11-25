@@ -1,4 +1,4 @@
-import { readFileSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve, sep } from 'node:path';
 import process from 'node:process';
 import { log } from 'node:console';
@@ -45,6 +45,15 @@ assert(
 );
 
 const root = resolve('dist');
+const output = readdirSync(root, { recursive: true }).map((name) => name.replaceAll('\\', '/'));
+assert(
+  !output.some((name) =>
+    /(?:\.map$|(?:^|\/)(?:node_modules|tests|local-reference|Roblox2016|RobloxRigs)(?:\/|$))/.test(
+      name,
+    ),
+  ),
+  'Production build contains development files',
+);
 const check = (file) => {
   assert(
     typeof file === 'string' && /^[\w./-]+$/.test(file) && !file.split('/').includes('..'),
@@ -58,6 +67,11 @@ const check = (file) => {
   return path;
 };
 const popup = check(manifest.action?.default_popup);
+const locale = json(check(`_locales/${manifest.default_locale}/messages.json`));
+assert(
+  manifest.default_locale === 'en' && locale.extension_description?.message,
+  'Missing manifest locale',
+);
 check(manifest.background?.service_worker);
 for (const entry of manifest.content_scripts) {
   for (const file of [...(entry.js ?? []), ...(entry.css ?? [])]) check(file);

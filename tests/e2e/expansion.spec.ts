@@ -14,8 +14,8 @@ const enabledFeatures = [
 ];
 const stamp = '2024-03-02T12:34:56.000Z';
 const fixture = `<!doctype html>
-  <meta name="user-data" data-userid="42">
-  <header><a href="/users/42/profile">Player</a><span id="nav-robux-amount">1M+</span></header>
+  <meta name="user-data" data-user-id="42">
+  <header><a href="/my/profile"><span data-testid="profile-name">Player</span></a><span id="nav-robux-amount">1M+</span></header>
   <nav id="left-navigation-container"><ul>
     <li><a href="/users/42/profile">Player</a></li>
     <li><a href="/my/messages">Messages</a><span id="messages">110</span></li>
@@ -27,11 +27,16 @@ const fixture = `<!doctype html>
       <a class="game-card-link" href="/games/18/Example">Example</a>
       <span data-testid="game-tile-stats-rating">90%</span>
     </div>
+    <div class="game-card-container" style="width:170px;height:90px">
+      <a class="game-card-link" href="/games/19/Second">Second</a>
+    </div>
     <ul class="game-stat-container">
       <li class="game-stat"><span class="text-label">Created</span><span class="text-lead">3/2/24</span></li>
       <li class="game-stat"><span class="text-label">Updated</span><span class="text-lead">3/2/24</span></li>
     </ul>
-    <section class="tab-pane store active"><ul id="rbx-passes-container">
+    <section class="tab-pane store" hidden></section>
+    <button role="tab" id="experience-store" aria-selected="true" aria-controls="panel-store-content">Store</button>
+    <section role="tabpanel" id="panel-store-content"><ul id="rbx-passes-container">
       <li id="on-sale"><a href="/game-pass/61">On sale pass</a></li>
     </ul></section>
     <div class="group-header"><h1>Example community</h1></div>
@@ -67,7 +72,7 @@ test('renders, updates, and cleans up expansion features using the built content
         },
         community: { data: [{ id: 7, created: date }] },
         balance: { robux: 1234567 },
-        user: { id: 42, hasVerifiedBadge: true },
+        user: { id: 42, name: 'Player', hasVerifiedBadge: true },
       };
       (window as any).chrome = {
         storage: {
@@ -88,9 +93,9 @@ test('renders, updates, and cleans up expansion features using the built content
         },
         runtime: {
           onMessage: { addListener() {} },
-          sendMessage: async ({ kind }: { kind: string }) => ({
+          sendMessage: async ({ kind, id }: { kind: string; id: string }) => ({
             ok: kind in data,
-            data: data[kind],
+            data: kind === 'user' && id === '43' ? { id: 43, hasVerifiedBadge: false } : data[kind],
           }),
         },
       };
@@ -105,13 +110,33 @@ test('renders, updates, and cleans up expansion features using the built content
   });
   await expect(page.locator('#friends')).toBeHidden();
   await expect(page.locator('#unrelated')).toBeVisible();
-  await expect(page.locator(owner('quick-play'))).toHaveAttribute(
+  const wide = page.getByTestId('wide-game-tile');
+  await expect(wide.locator(owner('quick-play'))).toHaveAttribute(
     'href',
     'roblox://experiences/start?placeId=18',
   );
+  const standard = page.locator('.game-card-container');
+  const dimensions = await standard.boundingBox();
+  for (const tile of [wide, standard, wide, standard]) {
+    await tile.locator('a.game-card-link').hover();
+    const play = tile.locator(owner('quick-play'));
+    await play.hover();
+    await expect(play).toHaveCSS('opacity', '1');
+  }
+  expect(await standard.boundingBox()).toEqual(dimensions);
+  await expect(standard.locator('a.game-card-link')).toHaveAttribute('href', '/games/19/Second');
   await expect(page.locator(owner('wide-player-counts'))).toContainText('123');
   await expect(page.locator('.game-stat time')).toHaveCount(2);
   await expect(page.locator('.game-stat time').first()).toHaveAttribute('datetime', stamp);
+  await expect(page.locator(owner('view-developer-products'))).toContainText('19 Robux');
+  const storePanel = page.locator('#panel-store-content');
+  await storePanel.evaluate((panel) => {
+    (panel as HTMLElement).hidden = true;
+  });
+  await expect(page.locator(owner('view-developer-products'))).toHaveCount(0);
+  await storePanel.evaluate((panel) => {
+    (panel as HTMLElement).hidden = false;
+  });
   await expect(page.locator(owner('view-developer-products'))).toContainText('19 Robux');
   await page.locator(`${owner('store-sale-filter')} select`).selectOption('off');
   await expect(page.locator('#on-sale')).toBeHidden();
@@ -120,6 +145,18 @@ test('renders, updates, and cleans up expansion features using the built content
   await expect(page.locator('#nav-robux-amount')).toHaveText(/1.234.567/);
   await expect(page.getByRole('link', { name: 'My Transactions' })).toHaveCount(1);
   await expect(page.locator(owner('verified-navigation-badges'))).toHaveCount(2);
+  const profileName = page.getByTestId('profile-name');
+  await profileName.evaluate((node) => {
+    const badge = document.createElement('span');
+    badge.setAttribute('data-rblx-verified-badge-icon', '');
+    node.append(badge);
+  });
+  await expect(page.locator(owner('verified-navigation-badges'))).toHaveCount(1);
+  await page.evaluate(() =>
+    document.querySelector('meta[name="user-data"]')?.setAttribute('data-user-id', '43'),
+  );
+  await expect(page.locator('html')).toHaveAttribute('data-rovex-verified-status', 'not-verified');
+  await expect(page.locator(owner('verified-navigation-badges'))).toHaveCount(0);
   await page.evaluate(() => {
     history.pushState({}, '', '/communities/7/Example');
     window.dispatchEvent(new Event('creator-toolkit:navigation'));

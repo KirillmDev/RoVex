@@ -1,5 +1,6 @@
 import { PRIMARY_SETTINGS_URL } from '../../shared/settings-url';
-import { mountSettings, type SettingsMount } from '../../content/settings/mount';
+import { mountSettings, type SettingsMount } from '../../settings/mount';
+import { watchDom } from '../../core/live-dom';
 
 export const ROBLOX_ACCOUNT_PATH = /^\/(?:[a-z]{2}(?:-[a-z]{2})?\/)?my\/account\/?$/i;
 
@@ -53,7 +54,7 @@ function addAccountNavigationEntry(): void {
 
 export class RobloxSettingsIntegration {
   private mount?: SettingsMount;
-  private observer?: MutationObserver;
+  private readonly scope = new AbortController();
   private queued = false;
   private stopped = false;
   private readonly onRouteChange = () => this.queueReconcile();
@@ -62,9 +63,9 @@ export class RobloxSettingsIntegration {
     window.addEventListener('creator-toolkit:navigation', this.onRouteChange);
     window.addEventListener('popstate', this.onRouteChange);
     window.addEventListener('hashchange', this.onRouteChange);
-    this.observer = new MutationObserver(() => this.queueReconcile());
-    this.observer.observe(document.documentElement, { childList: true, subtree: true });
-    this.reconcile();
+    watchDom(this.scope.signal, () => {
+      if (ROBLOX_ACCOUNT_PATH.test(location.pathname) || this.mount) this.queueReconcile();
+    });
   }
 
   private queueReconcile(): void {
@@ -117,7 +118,7 @@ export class RobloxSettingsIntegration {
     window.removeEventListener('creator-toolkit:navigation', this.onRouteChange);
     window.removeEventListener('popstate', this.onRouteChange);
     window.removeEventListener('hashchange', this.onRouteChange);
-    this.observer?.disconnect();
+    this.scope.abort();
     this.mount?.unmount();
     document.querySelector('[data-creator-toolkit-account-entry]')?.remove();
   }

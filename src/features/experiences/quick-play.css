@@ -1,0 +1,32 @@
+[data-rovex-quick-play='static'] {
+  position: relative;
+}
+[data-rovex-quick-play] > [data-creator-toolkit-owner='quick-play'] {
+  position: absolute;
+  inset: auto 6px 6px auto;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: var(--color-action-emphasis-background, #335fff);
+  color: var(--color-action-emphasis-foreground, #fff);
+  font:
+    600 13px/1.2 'Builder Sans',
+    system-ui,
+    sans-serif;
+  text-decoration: none;
+  white-space: nowrap;
+}
+@media (hover: hover) and (pointer: fine) {
+  [data-rovex-quick-play]:not(:hover):not(:focus-within)
+    > [data-creator-toolkit-owner='quick-play'] {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+[data-rovex-quick-play] > [data-creator-toolkit-owner='quick-play']:focus-visible {
+  outline: 2px solid var(--color-system-emphasis, Highlight);
+  outline-offset: 2px;
+}

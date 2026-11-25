@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { copyAssetIdFeature, extractAssetId } from '../src/features/copy-asset-id/copy-asset-id';
+import { copyAssetIdFeature, extractAssetId } from '../src/features/marketplace/copy-asset-id';
 import { featureDefaults } from '../src/storage/schema';
 
 describe('Copy Asset ID extraction', () => {

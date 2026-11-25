@@ -1,6 +1,6 @@
-import type { FeatureDefinition } from '../registry/types';
-import { requestData, signedInUser } from '../shared/roblox-data';
-import { ownedElement, watchDom } from './shared/live-dom';
+import type { FeatureDefinition } from '../../registry/types';
+import { robloxApi, signedInUser } from '../../api/roblox-data';
+import { ownedElement, watchDom } from '../../core/live-dom';
 
 const base = {
   category: 'roblox-navigation',
@@ -151,7 +151,7 @@ export const fullRobuxBalance: FeatureDefinition = {
       if ((!lastRequest || Date.now() - lastRequest > 30_000) && !pending && !document.hidden) {
         pending = true;
         lastRequest = Date.now();
-        void requestData<{ robux?: number }>('balance', user)
+        void robloxApi('balance', user, { signal })
           .then((result) => {
             if (Number.isSafeInteger(result?.robux) && result.robux! >= 0)
               balance = { user, amount: result.robux! };
@@ -182,65 +182,5 @@ export const fullRobuxBalance: FeatureDefinition = {
       },
       { once: true },
     );
-  },
-};
-
-export const verifiedNavigationBadges: FeatureDefinition = {
-  ...base,
-  category: 'roblox-miscellaneous',
-  id: 'verified-navigation-badges',
-  title: 'Verified badges in navigation',
-  description:
-    'Show the signed-in account’s official verification status beside its name in navigation.',
-  availability: 'Supported sidebar and header profile links.',
-  activate({ signal }) {
-    let checkedUser: string | undefined;
-    let verified = false;
-    const update = () => {
-      const user = signedInUser();
-      if (user !== checkedUser) {
-        document
-          .querySelectorAll('[data-creator-toolkit-owner="verified-navigation-badges"]')
-          .forEach((badge) => badge.remove());
-        checkedUser = user ?? undefined;
-        verified = false;
-        if (user)
-          void requestData<{ id?: number; hasVerifiedBadge?: boolean }>('user', user)
-            .then((data) => {
-              if (signal.aborted || checkedUser !== user) return;
-              verified = String(data?.id) === user && data?.hasVerifiedBadge === true;
-              update();
-            })
-            .catch(() => undefined);
-      }
-      if (!verified || !user) return;
-      for (const link of document.querySelectorAll<HTMLAnchorElement>(
-        `:is(${sidebar}, header, #header, #navbar, #header-container) a[href*="/profile"]`,
-      )) {
-        if (
-          !new RegExp(`/users/${user}/profile/?$`, 'i').test(
-            new URL(link.href, location.href).pathname,
-          ) ||
-          link.origin !== 'https://www.roblox.com' ||
-          link.querySelector(
-            '[data-rblx-verified-badge-icon], [class*="verified-badge"], [data-creator-toolkit-owner="verified-navigation-badges"]',
-          )
-        )
-          continue;
-        const name =
-          link.querySelector(
-            '.text-header, .font-header-2, .text-overflow, [data-testid*="username" i]',
-          ) ?? link;
-        const badge = ownedElement('span', 'verified-navigation-badges', signal);
-        badge.setAttribute('role', 'img');
-        badge.setAttribute('aria-label', 'Roblox verified account');
-        badge.title = 'Roblox verified account';
-        badge.textContent = '✓';
-        badge.style.cssText =
-          'display:inline-grid;place-items:center;width:15px;height:15px;margin-inline-start:4px;border-radius:5px;background:#335fff;color:white;font:700 11px/1 system-ui;vertical-align:middle;';
-        name.append(badge);
-      }
-    };
-    watchDom(signal, update);
   },
 };

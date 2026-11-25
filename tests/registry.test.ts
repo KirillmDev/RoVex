@@ -5,8 +5,43 @@ import { validateRegistry } from '../src/registry/validation';
 describe('feature registry validation', () => {
   it('accepts the production registry', () => {
     expect(validateRegistry(featureRegistry, categories)).toEqual({ valid: true });
-    expect(websiteFeatureRegistry).toHaveLength(33);
-    expect(websiteFeatureRegistry.map(({ id }) => id)).not.toContain('quick-links');
+    expect(websiteFeatureRegistry.map(({ id }) => id).sort()).toEqual(
+      [
+        'community-creation-date',
+        'content-width',
+        'copy-asset-id',
+        'copy-bundle-id',
+        'copy-community-id',
+        'copy-id-context-menu',
+        'copy-place-id',
+        'copy-user-id',
+        'detailed-experience-dates',
+        'full-robux-balance',
+        'hide-add-friends-tile',
+        'hide-app-download',
+        'hide-gift-card-link',
+        'keyboard-focus-indicators',
+        'keyboard-search',
+        'my-transactions-link',
+        'quick-play',
+        'quiet-sidebar',
+        'reading-line-spacing',
+        'recent-experiences',
+        'reduce-content-motion',
+        'saved-experiences',
+        'saved-marketplace',
+        'site-accent',
+        'site-palette',
+        'site-text-scale',
+        'store-sale-filter',
+        'thin-page-scrollbar',
+        'thumbnail-corners',
+        'underline-reading-links',
+        'verified-navigation-badges',
+        'view-developer-products',
+        'wide-player-counts',
+      ].sort(),
+    );
   });
 
   it('rejects duplicate IDs and unknown dependencies', () => {

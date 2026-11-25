@@ -1,6 +1,6 @@
 import { act } from 'react';
 import { describe, expect, it } from 'vitest';
-import { mountSettings } from '../src/content/settings/mount';
+import { mountSettings } from '../src/settings/mount';
 
 describe('settings UI', () => {
   it('reversibly replaces account content, searches, and remains available when disabled', async () => {

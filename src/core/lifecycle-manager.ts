@@ -4,6 +4,7 @@ import { getRuntimeSettings } from '../storage/chrome-storage';
 import { GLOBAL_KEY, featureKey } from '../storage/schema';
 import { routeMatches, snapshotRoute } from './routes';
 import { siteFromHostname } from '../sites/site';
+import { watchDom } from './live-dom';
 
 type ActiveFeature = {
   controller: AbortController;
@@ -23,7 +24,8 @@ export class LifecycleManager {
   private generation = 0;
   private running?: Promise<void>;
   private dirty = false;
-  private domObserver?: MutationObserver;
+  private readonly scope = new AbortController();
+  private started = false;
   constructor(
     private readonly getRoute: () => RouteSnapshot = () => snapshotRoute(window.location),
   ) {}
@@ -35,12 +37,15 @@ export class LifecycleManager {
   };
 
   async start(): Promise<void> {
+    if (this.started || this.stopped) return;
+    this.started = true;
     window.addEventListener('creator-toolkit:navigation', this.handleNavigation);
     window.addEventListener('popstate', this.handleNavigation);
     window.addEventListener('hashchange', this.handleNavigation);
     chrome.storage.onChanged.addListener(this.handleStorage);
-    this.domObserver = new MutationObserver(() => this.queueReconcile());
-    this.domObserver.observe(document.documentElement, { childList: true, subtree: true });
+    watchDom(this.scope.signal, () => {
+      if ([...this.active.values()].some((active) => !this.healthy(active))) this.queueReconcile();
+    });
     await this.reconcile();
   }
 
@@ -49,7 +54,7 @@ export class LifecycleManager {
     this.reconcileQueued = true;
     queueMicrotask(() => {
       this.reconcileQueued = false;
-      void this.reconcile();
+      void this.reconcile().catch((error: unknown) => this.diagnose('reconciliation', error));
     });
   }
 
@@ -67,10 +72,28 @@ export class LifecycleManager {
     if (!active) return;
     this.active.delete(id);
     active.controller.abort();
-    await active.instance?.deactivate?.();
-    document
-      .querySelectorAll(`[data-creator-toolkit-owner="${id}"]`)
-      .forEach((node) => node.remove());
+    try {
+      await active.instance?.deactivate?.();
+    } catch (error) {
+      this.diagnose(id, error);
+    } finally {
+      document
+        .querySelectorAll(`[data-creator-toolkit-owner="${id}"]`)
+        .forEach((node) => node.remove());
+    }
+  }
+
+  private diagnose(stage: string, error: unknown) {
+    if (import.meta.env.ROVEX_DEV_DIAGNOSTICS) console.warn(`RoVex runtime: ${stage}`, error);
+  }
+
+  private healthy(active: ActiveFeature): boolean {
+    try {
+      return active.instance?.isHealthy?.() !== false;
+    } catch (error) {
+      this.diagnose('feature health check', error);
+      return false;
+    }
   }
 
   private async activate(feature: FeatureDefinition, route: RouteSnapshot, record: FeatureRecord) {
@@ -96,9 +119,8 @@ export class LifecycleManager {
       }
       pending.instance = instance ?? undefined;
     } catch (error) {
-      this.active.delete(feature.id);
-      controller.abort();
-      console.error(`Creator Toolkit: failed to activate ${feature.id}`, error);
+      await this.deactivate(feature.id);
+      this.diagnose(feature.id, error);
     }
   }
 
@@ -126,6 +148,16 @@ export class LifecycleManager {
     );
     const { enabled, records } = await getRuntimeSettings(candidates);
     if (this.stopped) return;
+    const latest = this.getRoute();
+    if (
+      route.hostname !== latest.hostname ||
+      route.pathname !== latest.pathname ||
+      route.search !== latest.search ||
+      route.hash !== latest.hash
+    ) {
+      this.dirty = true;
+      return;
+    }
     const desired = new Map<string, { feature: FeatureDefinition; record: FeatureRecord }>();
     if (enabled) {
       for (const feature of candidates) {
@@ -139,7 +171,7 @@ export class LifecycleManager {
       if (
         !target ||
         active.fingerprint !== featureFingerprint(route, target.record) ||
-        (active.instance?.isHealthy && !active.instance.isHealthy())
+        !this.healthy(active)
       ) {
         await this.deactivate(id);
       }
@@ -157,7 +189,7 @@ export class LifecycleManager {
     window.removeEventListener('popstate', this.handleNavigation);
     window.removeEventListener('hashchange', this.handleNavigation);
     chrome.storage.onChanged.removeListener(this.handleStorage);
-    this.domObserver?.disconnect();
+    this.scope.abort();
     await Promise.all([...this.active.keys()].map((id) => this.deactivate(id)));
   }
 

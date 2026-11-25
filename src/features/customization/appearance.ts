@@ -1,4 +1,4 @@
-import { websitePreference } from './website-preferences';
+import { websitePreference } from '../website-preferences';
 
 const category = 'website-customization';
 const content = ':is(main, #content, .container-main)';

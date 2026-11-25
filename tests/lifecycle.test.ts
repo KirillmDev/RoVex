@@ -1,12 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { LifecycleManager } from '../src/navigation/lifecycle-manager';
-import {
-  getFeature,
-  initializeStorage,
-  setFeature,
-  setGlobal,
-} from '../src/storage/chrome-storage';
-import { snapshotRoute } from '../src/navigation/routes';
+import { LifecycleManager } from '../src/core/lifecycle-manager';
+import { getFeature, setFeature, setGlobal } from '../src/storage/chrome-storage';
+import { initializeStorage } from '../src/storage/initialize';
+import { snapshotRoute } from '../src/core/routes';
 import { websitePreferences } from '../src/features/website-preferences';
 
 describe('feature lifecycle', () => {

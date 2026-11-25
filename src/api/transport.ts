@@ -1,4 +1,4 @@
-import { robloxEndpoint } from '../shared/roblox-data';
+import { RobloxApiError, robloxEndpoint } from './roblox-data';
 
 const cache = new Map<string, { expires: number; value: unknown }>();
 const pending = new Map<string, Promise<unknown>>();
@@ -10,29 +10,40 @@ export async function readRobloxData(
   cursor?: unknown,
 ): Promise<unknown> {
   const endpoint = robloxEndpoint(kind, id, cursor);
-  if (!endpoint) throw new Error('Unsupported data request');
+  if (!endpoint) throw new RobloxApiError('invalid');
   const { url, credentials, ttl } = endpoint;
   const key = url.href;
   const cached = cache.get(key);
   if (cached && cached.expires > Date.now()) return cached.value;
+  if (cached) cache.delete(key);
   const existing = pending.get(key);
   if (existing) return existing;
-  if ((throttled.get(url.origin) ?? 0) > Date.now() || pending.size >= 24)
-    throw new Error('Roblox data temporarily unavailable');
+  if ((throttled.get(url.origin) ?? 0) > Date.now()) throw new RobloxApiError('rate-limit');
+  if (pending.size >= 24) throw new RobloxApiError('unavailable');
   const request = (async () => {
-    const response = await fetch(url, {
-      credentials,
-      redirect: 'error',
-      signal: AbortSignal.timeout(10_000),
-    });
+    const signal = AbortSignal.timeout(10_000);
+    const fetchOnce = () =>
+      fetch(url, {
+        credentials,
+        redirect: 'error',
+        signal,
+      });
+    let response = await fetchOnce();
+    if ([502, 503, 504].includes(response.status)) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 350));
+      signal.throwIfAborted();
+      response = await fetchOnce();
+    }
     if (response.status === 429) {
       const retry = Number(response.headers.get('retry-after')) || 30;
       throttled.set(url.origin, Date.now() + Math.min(300, Math.max(10, retry)) * 1000);
+      throw new RobloxApiError('rate-limit');
     }
-    if (!response.ok) throw new Error(`Roblox returned ${response.status}`);
+    if (response.status === 401 || response.status === 403) throw new RobloxApiError('restricted');
+    if (!response.ok) throw new RobloxApiError('unavailable');
     const value: unknown = await response.json();
     cache.delete(key);
-    cache.set(key, { value, expires: Date.now() + ttl });
+    if (ttl) cache.set(key, { value, expires: Date.now() + ttl });
     if (cache.size > 256) cache.delete(cache.keys().next().value!);
     return value;
   })();

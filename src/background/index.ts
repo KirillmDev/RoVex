@@ -1,16 +1,17 @@
-import { initializeStorage } from '../storage/chrome-storage';
+import { migrateStorage } from '../storage/chrome-storage';
 import { openSettingsTab } from '../shared/settings-url';
-import { readRobloxData } from './data';
+import { readRobloxData } from '../api/transport';
+import { RobloxApiError } from '../api/roblox-data';
 import { refreshIdMenu, registerIdMenuListeners } from './id-context-menu';
 
 registerIdMenuListeners();
 
 chrome.runtime.onInstalled.addListener(() => {
-  void initializeStorage().then(refreshIdMenu);
+  void migrateStorage().then(refreshIdMenu);
 });
 
 chrome.runtime.onStartup.addListener(() => {
-  void initializeStorage().then(refreshIdMenu);
+  void migrateStorage().then(refreshIdMenu);
 });
 
 chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) => {
@@ -25,7 +26,11 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) =>
     const { kind, id, cursor } = message as { kind?: unknown; id?: unknown; cursor?: unknown };
     void readRobloxData(kind, id, cursor).then(
       (data) => sendResponse({ ok: true, data }),
-      () => sendResponse({ ok: false }),
+      (error: unknown) =>
+        sendResponse({
+          ok: false,
+          code: error instanceof RobloxApiError ? error.code : 'unavailable',
+        }),
     );
     return true;
   }

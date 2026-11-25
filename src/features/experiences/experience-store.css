@@ -4,18 +4,12 @@
   color: var(--color-content-emphasis, CanvasText);
 }
 h3 {
-  font:
-    700 18px/1.4 'Builder Sans',
-    system-ui,
-    sans-serif;
+  font: 700 18px/1.4 var(--rovex-font);
   margin: 0 0 6px;
 }
 p,
 li {
-  font:
-    14px/1.4 'Builder Sans',
-    system-ui,
-    sans-serif;
+  font: 14px/1.4 var(--rovex-font);
 }
 p:empty {
   display: none;
@@ -25,15 +19,15 @@ ul {
   padding: 0;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
-  gap: 10px;
+  gap: var(--rovex-panel-gap);
 }
 li {
   display: grid;
   align-content: start;
   gap: 4px;
   padding: 10px;
-  border-radius: 8px;
-  border: 1px solid var(--color-stroke-default, GrayText);
+  border-radius: var(--rovex-control-radius);
+  border: 1px solid var(--rovex-control-border);
 }
 li[hidden] {
   display: none;

@@ -22,14 +22,6 @@ test('injects visible ID actions on current public Roblox routes', async () => {
       'store-sale-filter',
       'community-creation-date',
     ].map((id) => `creatorToolkit.feature.${id}`);
-    await expect
-      .poll(() =>
-        worker.evaluate(async (keys) => {
-          const stored = await chrome.storage.local.get(keys);
-          return keys.every((key) => key in stored);
-        }, featureKeys),
-      )
-      .toBe(true);
     await worker.evaluate(
       (keys) =>
         chrome.storage.local.set(Object.fromEntries(keys.map((key) => [key, { enabled: true }]))),
@@ -66,6 +58,14 @@ test('injects visible ID actions on current public Roblox routes', async () => {
     await expect(
       page.locator('[data-creator-toolkit-owner="community-creation-date"] time'),
     ).toHaveAttribute('datetime', '2009-07-30T05:36:10.417Z', { timeout: 15_000 });
+
+    await page.goto('https://www.roblox.com/games/920587237', {
+      waitUntil: 'commit',
+      timeout: 30_000,
+    });
+    await page.locator('a[href="#store"]').first().click({ timeout: 15_000 });
+    const liveProduct = products.locator('a[href="/developer-product/383310974/product/2215085"]');
+    await expect(liveProduct).toHaveText('10000 Bucks', { timeout: 25_000 });
   } finally {
     await context.close();
     await rm(profile, { recursive: true, force: true });

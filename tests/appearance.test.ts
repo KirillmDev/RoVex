@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { appearanceFeatures } from '../src/features/appearance';
+import { appearanceFeatures } from '../src/features/customization/appearance';
 import { featureDefaults } from '../src/storage/schema';
 
 const cases = [

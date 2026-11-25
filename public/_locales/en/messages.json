@@ -1,0 +1,18 @@
+{
+  "extension_description": {
+    "message": "Customizable shortcuts and page tools for the Roblox website."
+  },
+  "settings_heading": { "message": "RoVex Settings" },
+  "reset_feature": { "message": "Reset feature settings" },
+  "quick_play": { "message": "Play" },
+  "verified_account": { "message": "Roblox verified account" },
+  "developer_products": { "message": "Developer products" },
+  "developer_products_loading": { "message": "Loading developer products…" },
+  "developer_products_restricted": {
+    "message": "Roblox does not make developer products available for this experience."
+  },
+  "developer_products_unavailable": {
+    "message": "Developer products are temporarily unavailable. Reopen the Store to retry."
+  },
+  "feature_quick_play_title": { "message": "Quick Play on cards" }
+}

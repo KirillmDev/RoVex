@@ -1,30 +1,27 @@
 import { categories } from './categories';
 import { quickLinksFeature } from '../features/quick-links/quick-links';
-import { copyAssetIdFeature } from '../features/copy-asset-id/copy-asset-id';
-import { copyCommunityIdFeature } from '../features/copy-community-id/copy-community-id';
-import { copyPlaceIdFeature } from '../features/copy-place-id/copy-place-id';
-import { copyUniverseIdFeature } from '../features/copy-universe-id/copy-universe-id';
-import { copyUserIdFeature } from '../features/copy-user-id/copy-user-id';
+import { copyAssetIdFeature } from '../features/marketplace/copy-asset-id';
+import { copyCommunityIdFeature } from '../features/communities/copy-community-id';
+import { copyPlaceIdFeature } from '../features/experiences/copy-place-id';
+import { copyUniverseIdFeature } from '../features/experiences/copy-universe-id';
+import { copyUserIdFeature } from '../features/profile/copy-user-id';
 import { validateRegistry } from './validation';
-import { websiteFeatures } from '../features/website-features';
+import { websiteFeatures } from '../features/marketplace/bundle-id';
 import { websitePreferences } from '../features/website-preferences';
-import { appearanceFeatures } from '../features/appearance';
+import { appearanceFeatures } from '../features/customization/appearance';
 import { pageLibraries } from '../features/page-library';
-import { keyboardSearch } from '../features/keyboard-search';
-import {
-  quickPlay,
-  widePlayerCounts,
-  detailedDates,
-  communityCreationDate,
-} from '../features/experience-tools';
-import { developerProducts, storeSaleFilter } from '../features/experience-store';
+import { keyboardSearch } from '../features/navigation/keyboard-search';
+import { widePlayerCounts, detailedDates } from '../features/experiences/experience-tools';
+import { communityCreationDate } from '../features/communities/creation-date';
+import { developerProducts, storeSaleFilter } from '../features/experiences/experience-store';
 import {
   quietSidebar,
   transactionsLink,
   fullRobuxBalance,
-  verifiedNavigationBadges,
-} from '../features/navigation-tools';
-import { idContextMenu } from '../features/id-context-menu';
+} from '../features/navigation/navigation-tools';
+import { idContextMenu } from '../features/developer/id-context-menu';
+import { quickPlay } from '../features/experiences/quick-play';
+import { verifiedNavigationBadges } from '../features/navigation/verified-badges';
 
 export const featureRegistry = [
   copyUserIdFeature,

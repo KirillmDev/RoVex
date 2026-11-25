@@ -1,4 +1,4 @@
-import { createIdCopyFeature, pathSegmentId } from './shared/id-copy-feature';
+import { createIdCopyFeature, pathSegmentId } from '../shared/id-copy-feature';
 
 export const websiteFeatures = [
   createIdCopyFeature({

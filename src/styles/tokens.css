@@ -1,0 +1,6 @@
+:host {
+  --rovex-font: 'Builder Sans', system-ui, sans-serif;
+  --rovex-control-radius: 8px;
+  --rovex-panel-gap: 10px;
+  --rovex-control-border: var(--color-stroke-default, GrayText);
+}

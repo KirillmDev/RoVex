@@ -4,22 +4,23 @@ import {
   websiteFeatureRegistry as featureRegistry,
   type FeatureDefinition,
   type FeatureRecord,
-} from '../../registry';
+} from '../registry';
 import {
-  getFeature,
-  getGlobal,
-  initializeStorage,
+  getRuntimeSettings,
+  resetFeatureSettings,
   setFeature,
   setGlobal,
-} from '../../storage/chrome-storage';
+} from '../storage/chrome-storage';
 import {
   applyImport,
   downloadSettingsExport,
   previewImport,
   resetAllSettings,
   type ImportPreview,
-} from '../../storage/import-export';
-import { GLOBAL_KEY, featureKey } from '../../storage/schema';
+} from '../storage/import-export';
+import { GLOBAL_KEY, featureKey } from '../storage/schema';
+import { featureMessage, message } from '../localization/messages';
+import { SettingField } from '../components/SettingField';
 
 type Records = Record<string, FeatureRecord>;
 
@@ -29,9 +30,12 @@ function matchesSearch(feature: FeatureDefinition, query: string) {
   return [
     feature.title,
     feature.description,
+    featureMessage(feature.id, 'title', feature.title),
+    featureMessage(feature.id, 'description', feature.description),
     feature.id,
     ...feature.settings.flatMap((setting) => [
       setting.label,
+      featureMessage(feature.id, `setting_${setting.key}_label`, setting.label),
       setting.description ?? '',
       ...(setting.keywords ?? []),
     ]),
@@ -59,15 +63,9 @@ export function SettingsApp() {
   const fileInput = useRef<HTMLInputElement>(null);
 
   const refresh = async () => {
-    await initializeStorage();
-    const [global, entries] = await Promise.all([
-      getGlobal(),
-      Promise.all(
-        featureRegistry.map(async (feature) => [feature.id, await getFeature(feature)] as const),
-      ),
-    ]);
-    setGlobalEnabled(global.enabled);
-    setRecords(Object.fromEntries(entries));
+    const { enabled, records } = await getRuntimeSettings(featureRegistry);
+    setGlobalEnabled(enabled);
+    setRecords(Object.fromEntries(records));
   };
 
   useEffect(() => {
@@ -135,7 +133,7 @@ export function SettingsApp() {
     <section className="ct-shell" aria-labelledby="ct-title">
       <header className="ct-header">
         <div className="ct-brand">
-          <h1 id="ct-title">RoVex Settings</h1>
+          <h1 id="ct-title">{message('settings_heading', 'RoVex Settings')}</h1>
           <p>Customize RoVex enhancements for the Roblox website.</p>
         </div>
         <label className="ct-master">
@@ -262,7 +260,7 @@ export function SettingsApp() {
                   <div className="ct-card-head">
                     <div>
                       <h3>
-                        {feature.title}
+                        {featureMessage(feature.id, 'title', feature.title)}
                         {feature.status === 'experimental' && (
                           <span className="ct-status">Experimental</span>
                         )}
@@ -270,7 +268,7 @@ export function SettingsApp() {
                           <span className="ct-status">Unavailable</span>
                         )}
                       </h3>
-                      <p>{feature.description}</p>
+                      <p>{featureMessage(feature.id, 'description', feature.description)}</p>
                       {feature.status === 'disabled' && feature.disabledReason && (
                         <p className="ct-disabled-reason">{feature.disabledReason}</p>
                       )}
@@ -278,7 +276,11 @@ export function SettingsApp() {
                     <input
                       className="ct-switch"
                       type="checkbox"
-                      aria-label={`Enable ${feature.title}`}
+                      aria-label={message(
+                        'enable_feature',
+                        'Enable $1',
+                        featureMessage(feature.id, 'title', feature.title),
+                      )}
                       checked={record.enabled}
                       disabled={feature.status === 'disabled'}
                       onChange={(event) =>
@@ -297,92 +299,33 @@ export function SettingsApp() {
                             options: { ...record.options, [setting.key]: nextValue },
                           });
                         return (
-                          <div className="ct-field" key={setting.key}>
-                            <div className="ct-field-copy">
-                              <label htmlFor={id}>{setting.label}</label>
-                              {setting.description && (
-                                <small id={`${id}-description`}>{setting.description}</small>
-                              )}
-                            </div>
-                            {setting.kind === 'boolean' && (
-                              <input
-                                id={id}
-                                className="ct-switch"
-                                type="checkbox"
-                                checked={value === true}
-                                aria-describedby={
-                                  setting.description ? `${id}-description` : undefined
-                                }
-                                onChange={(event) => commit(event.target.checked)}
-                              />
-                            )}
-                            {setting.kind === 'number' && (
-                              <div
-                                className={
-                                  setting.presentation === 'slider' ? 'ct-slider' : undefined
-                                }
-                              >
-                                <input
-                                  id={id}
-                                  type={setting.presentation === 'slider' ? 'range' : 'number'}
-                                  value={Number(value)}
-                                  min={setting.min}
-                                  max={setting.max}
-                                  step={setting.step}
-                                  aria-describedby={
-                                    setting.description ? `${id}-description` : undefined
-                                  }
-                                  onChange={(event) => commit(event.target.valueAsNumber)}
-                                />
-                                {setting.presentation === 'slider' && (
-                                  <output htmlFor={id}>{String(value)}</output>
-                                )}
-                              </div>
-                            )}
-                            {setting.kind === 'color' && (
-                              <div className="ct-color">
-                                <span aria-hidden="true">{String(value)}</span>
-                                <input
-                                  id={id}
-                                  type="color"
-                                  value={String(value)}
-                                  onChange={(event) => commit(event.target.value)}
-                                />
-                              </div>
-                            )}
-                            {setting.kind === 'text' && (
-                              <input
-                                id={id}
-                                type="text"
-                                value={String(value ?? '')}
-                                maxLength={setting.maxLength}
-                                placeholder={setting.placeholder}
-                                aria-describedby={
-                                  setting.description ? `${id}-description` : undefined
-                                }
-                                onChange={(event) => commit(event.target.value)}
-                              />
-                            )}
-                            {setting.kind === 'select' && (
-                              <select
-                                id={id}
-                                value={String(value)}
-                                aria-describedby={
-                                  setting.description ? `${id}-description` : undefined
-                                }
-                                onChange={(event) => commit(event.target.value)}
-                              >
-                                {setting.options.map((option) => (
-                                  <option key={option.value} value={option.value}>
-                                    {option.label}
-                                  </option>
-                                ))}
-                              </select>
-                            )}
-                          </div>
+                          <SettingField
+                            key={setting.key}
+                            featureId={feature.id}
+                            id={id}
+                            setting={setting}
+                            value={value}
+                            commit={commit}
+                          />
                         );
                       })}
                     </div>
+                  )}
+                  {(record.enabled !== feature.defaultEnabled ||
+                    feature.settings.some(
+                      (setting) => record.options[setting.key] !== setting.default,
+                    )) && (
+                    <button
+                      className="ct-secondary ct-reset-feature"
+                      type="button"
+                      onClick={() =>
+                        void resetFeatureSettings(feature).then((next) =>
+                          setRecords((current) => ({ ...current, [feature.id]: next })),
+                        )
+                      }
+                    >
+                      {message('reset_feature', 'Reset feature settings')}
+                    </button>
                   )}
                 </article>
               );

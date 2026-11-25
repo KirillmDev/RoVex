@@ -1,6 +1,7 @@
 import { createRoot, type Root } from 'react-dom/client';
 import { SettingsApp } from './SettingsApp';
-import styles from './settings.css?inline';
+import styles from '../styles/settings.css?inline';
+import tokens from '../styles/tokens.css?inline';
 
 const ROOT_TAG = 'creator-toolkit-settings-root';
 
@@ -39,7 +40,7 @@ export function mountSettings(target: HTMLElement): SettingsMount {
   const host = document.createElement(ROOT_TAG);
   const shadow = host.attachShadow({ mode: 'open' });
   const style = document.createElement('style');
-  style.textContent = styles;
+  style.textContent = tokens + styles;
   const app = document.createElement('div');
   shadow.append(style, app);
   target.append(host);

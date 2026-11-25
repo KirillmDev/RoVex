@@ -1,25 +1,56 @@
-import type { FeatureDefinition } from '../registry/types';
-import { experiencePath, requestData, robloxId, universeForPlace } from '../shared/roblox-data';
-import { ownedElement, watchDom } from './shared/live-dom';
+import type { FeatureDefinition } from '../../registry/types';
+import {
+  experiencePath,
+  robloxApi,
+  RobloxApiError,
+  robloxId,
+  universeForPlace,
+} from '../../api/roblox-data';
+import { ownedElement, watchDom } from '../../core/live-dom';
+import { liveStatus } from '../../components/dom';
+import { message } from '../../localization/messages';
 import styles from './experience-store.css?inline';
+import tokens from '../../styles/tokens.css?inline';
 
 type Item = { id: string; name: string; price?: number; onSale?: boolean; icon?: string };
 type Filter = 'all' | 'on' | 'off';
 const FILTER_EVENT = 'rovex:store-filter';
 const hidden = 'data-rovex-sale-hidden';
 const modes = new WeakMap<Element, Filter>();
-const storeSelector = '.tab-pane.store, #store-tab, [data-testid="experience-store-tab-panel"]';
+const storeSelector =
+  '.tab-pane.store, #store-tab, [data-testid="experience-store-tab-panel"], [data-testid="store-tab-panel"]';
 const owner = (id: string) => `[data-creator-toolkit-owner="${id}"]`;
+
+function visibleStore(): Element | undefined {
+  const panels = [...document.querySelectorAll(storeSelector)];
+  for (const tab of document.querySelectorAll(
+    '[role="tab"][aria-selected="true"][aria-controls]',
+  )) {
+    if (
+      !/store/i.test(
+        [tab.id, tab.getAttribute('data-testid'), tab.getAttribute('aria-controls')].join(' '),
+      )
+    )
+      continue;
+    const panel = document.getElementById(tab.getAttribute('aria-controls')!);
+    if (panel) panels.push(panel);
+  }
+  return panels.find(
+    (panel) => !panel.closest('[hidden], [aria-hidden="true"]') && panel.getClientRects().length,
+  );
+}
 
 export function matchesStoreFilter(mode: Filter, onSale?: boolean): boolean {
   return mode === 'all' || onSale === undefined || onSale === (mode === 'on');
 }
 
-function normalizeItem(value: unknown): Item | null {
+export function normalizeStoreItem(value: unknown, kind: 'products' | 'passes'): Item | null {
   if (!value || typeof value !== 'object') return null;
   const row = value as Record<string, unknown>;
-  const id = robloxId(row.id ?? row.productId ?? row.ProductId);
-  const name = row.displayName ?? row.name ?? row.Name;
+  const id = robloxId(
+    kind === 'products' ? (row.developerProductId ?? row.DeveloperProductId ?? row.id) : row.id,
+  );
+  const name = row.displayName ?? row.DisplayName ?? row.name ?? row.Name;
   if (!id || typeof name !== 'string' || !name.trim()) return null;
   const price = row.priceInRobux ?? row.price ?? row.PriceInRobux;
   const sale = row.isForSale ?? row.IsForSale;
@@ -30,30 +61,36 @@ function normalizeItem(value: unknown): Item | null {
       typeof price === 'number' && Number.isSafeInteger(price) && price >= 0 ? price : undefined,
     onSale: typeof sale === 'boolean' ? sale : undefined,
     icon:
-      robloxId(row.displayIconImageAssetId ?? row.iconImageAssetId ?? row.IconImageAssetId) ??
-      undefined,
+      robloxId(
+        row.displayIconImageAssetId ??
+          row.DisplayIconImageAssetId ??
+          row.iconImageAssetId ??
+          row.IconImageAssetId ??
+          row.displayIcon,
+      ) ?? undefined,
   };
 }
 
 async function loadItems(kind: 'products' | 'passes', place: string, signal: AbortSignal) {
-  const universe = await universeForPlace(place);
+  const universe = await universeForPlace(place, signal);
   const items = new Map<string, Item>();
   let cursor = '';
   const visited = new Set<string>();
   for (let page = 0; page < 5 && !signal.aborted; page++) {
-    const result = await requestData<{
-      developerProducts?: unknown[];
-      gamePasses?: unknown[];
-      nextPageCursor?: string;
-      nextPageToken?: string;
-    }>(kind, universe, cursor);
-    const rows = kind === 'products' ? result.developerProducts : result.gamePasses;
+    const products =
+      kind === 'products' ? await robloxApi('products', universe, { cursor, signal }) : null;
+    const passes =
+      kind === 'passes' ? await robloxApi('passes', universe, { cursor, signal }) : null;
+    const rows = products
+      ? (products.developerProducts ?? products.DeveloperProducts)
+      : passes?.gamePasses;
     if (!Array.isArray(rows)) throw new Error('Unexpected Store response');
     for (const row of rows) {
-      const item = normalizeItem(row);
+      const item = normalizeStoreItem(row, kind);
       if (item) items.set(item.id, item);
     }
-    cursor = (kind === 'products' ? result.nextPageCursor : result.nextPageToken) || '';
+    cursor = products?.nextPageCursor ?? products?.NextPageCursor ?? passes?.nextPageToken ?? '';
+    if (typeof cursor !== 'string' || cursor.length > 1024) throw new RobloxApiError('unavailable');
     if (!cursor) break;
     if (visited.has(cursor)) break;
     visited.add(cursor);
@@ -70,11 +107,10 @@ function makeSection(title: string): {
   const host = document.createElement('section');
   const root = host.attachShadow({ mode: 'open' });
   const style = document.createElement('style');
-  style.textContent = styles;
+  style.textContent = tokens + styles;
   const heading = document.createElement('h3');
   heading.textContent = title;
-  const note = document.createElement('p');
-  note.setAttribute('role', 'status');
+  const note = liveStatus();
   const grid = document.createElement('ul');
   root.append(style, heading, note, grid);
   return { root, note, grid, host };
@@ -115,23 +151,29 @@ export const developerProducts: FeatureDefinition = {
     const place = experiencePath.exec(route.pathname)?.[1];
     if (!place) return;
     let loaded: ReturnType<typeof loadItems> | undefined;
+    let active: { panel: Element; section: HTMLElement; listeners: AbortController } | undefined;
+    function clear() {
+      active?.listeners.abort();
+      active?.section.remove();
+      active = undefined;
+    }
+    signal.addEventListener('abort', clear, { once: true });
     watchDom(signal, () => {
-      const store = document.querySelector(storeSelector);
-      if (
-        !store ||
-        store.closest('[hidden], [aria-hidden="true"]') ||
-        !store.getClientRects().length ||
-        store.querySelector(
-          `#rbx-developer-products, .rovalra-dev-products, ${owner('view-developer-products')}`,
-        )
-      )
-        return;
-      const section = makeSection('Developer products');
+      const store = visibleStore();
+      if (active && active.panel === store && active.section.isConnected) return;
+      clear();
+      if (!store || store.querySelector('#rbx-developer-products, .rovalra-dev-products')) return;
+      const listeners = new AbortController();
+      const section = makeSection(message('developer_products', 'Developer products'));
       section.host.dataset.creatorToolkitOwner = 'view-developer-products';
-      section.note.textContent = 'Loading developer products…';
+      section.note.textContent = message(
+        'developer_products_loading',
+        'Loading developer products…',
+      );
+      active = { panel: store, section: section.host, listeners };
       store.append(section.host);
-      signal.addEventListener('abort', () => section.host.remove(), { once: true });
       loaded ??= loadItems('products', place, signal);
+      const currentLoad = loaded;
       void loaded
         .then(async ({ universe, items, partial }) => {
           if (signal.aborted || !section.host.isConnected) return;
@@ -162,7 +204,7 @@ export const developerProducts: FeatureDefinition = {
                     .filter(Boolean)
                     .join(' ');
           };
-          store.addEventListener(FILTER_EVENT, render, { signal });
+          store.addEventListener(FILTER_EVENT, render, { signal: listeners.signal });
           render();
           const icons = [
             ...new Set([...items.values()].flatMap((item) => (item.icon ? [item.icon] : []))),
@@ -172,10 +214,9 @@ export const developerProducts: FeatureDefinition = {
             offset < icons.length && !signal.aborted && section.host.isConnected;
             offset += 100
           ) {
-            const thumbs = await requestData<{ data?: { targetId: number; imageUrl?: string }[] }>(
-              'icons',
-              icons.slice(offset, offset + 100).join(','),
-            ).catch(() => null);
+            const thumbs = await robloxApi('icons', icons.slice(offset, offset + 100).join(','), {
+              signal: listeners.signal,
+            }).catch(() => null);
             for (const thumb of thumbs?.data ?? []) {
               if (
                 signal.aborted ||
@@ -194,9 +235,20 @@ export const developerProducts: FeatureDefinition = {
             }
           }
         })
-        .catch(() => {
-          if (!signal.aborted)
-            section.note.textContent = 'Developer products are temporarily unavailable.';
+        .catch((error: unknown) => {
+          if (loaded === currentLoad) loaded = undefined;
+          if (!signal.aborted && section.host.isConnected) {
+            section.note.textContent =
+              error instanceof RobloxApiError && error.code === 'restricted'
+                ? message(
+                    'developer_products_restricted',
+                    'Roblox does not make developer products available for this experience.',
+                  )
+                : message(
+                    'developer_products_unavailable',
+                    'Developer products are temporarily unavailable. Reopen the Store to retry.',
+                  );
+          }
         });
     });
   },
@@ -218,7 +270,7 @@ export const storeSaleFilter: FeatureDefinition = {
     style.textContent = `[${hidden}] { display: none !important; }`;
     document.head.append(style);
     const update = () => {
-      const store = document.querySelector(storeSelector);
+      const store = visibleStore();
       if (
         !store ||
         !store.getClientRects().length ||

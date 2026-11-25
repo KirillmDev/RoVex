@@ -1,17 +1,9 @@
-import type { FeatureDefinition } from '../registry/types';
-import {
-  communityPath,
-  experiencePath,
-  requestData,
-  robloxId,
-  universeForPlace,
-} from '../shared/roblox-data';
-import { exactTime, ownedElement, watchDom } from './shared/live-dom';
+import type { FeatureDefinition } from '../../registry/types';
+import { experiencePath, robloxApi, robloxId, universeForPlace } from '../../api/roblox-data';
+import { exactTime, ownedElement, watchDom } from '../../core/live-dom';
 
 const hostnames = ['www.roblox.com'];
 const base = { supportedSites: ['roblox'] as const, defaultEnabled: false, settings: [] };
-const cards =
-  'a.game-card-link[href], a.sdui-game-tile-wrapper[href], a.sdui-game-tile-primary[href], [data-testid="wide-game-tile"] a[href*="/games/"]';
 type Stats = { id: number; playing?: number; created?: string; updated?: string };
 const dateLabels: Record<string, readonly [string, string]> = {
   en: ['Created', 'Updated'],
@@ -47,55 +39,6 @@ function linkedPlace(link: HTMLAnchorElement): string | undefined {
     : undefined;
 }
 
-export const quickPlay: FeatureDefinition = {
-  ...base,
-  id: 'quick-play',
-  category: 'experiences',
-  title: 'Quick Play on cards',
-  description: 'Open a public experience in the Roblox app directly from its card.',
-  availability: 'Standard and wide experience cards. Requires the Roblox app.',
-  routes: [{ hostnames }],
-  activate({ signal }) {
-    watchDom(signal, () => {
-      for (const link of document.querySelectorAll<HTMLAnchorElement>(cards)) {
-        const place = linkedPlace(link);
-        if (!place || link.closest('[data-testid="event-experience-link"]')) continue;
-        const tile =
-          link.closest(
-            '[data-testid="wide-game-tile"], .game-card-container, .sdui-game-tile-wrapper',
-          ) ?? link;
-        const existing =
-          tile.querySelector<HTMLAnchorElement>('[data-creator-toolkit-owner="quick-play"]') ??
-          (tile === link &&
-          link.nextElementSibling?.getAttribute('data-creator-toolkit-owner') === 'quick-play'
-            ? (link.nextElementSibling as HTMLAnchorElement)
-            : null);
-        if (existing) {
-          const href = `roblox://experiences/start?placeId=${place}`;
-          if (existing.getAttribute('href') !== href) existing.href = href;
-          continue;
-        }
-        if (
-          tile.querySelector(
-            '.sdui-play-button, [data-testid="quick-play-button"], [class*="rovalra-quick-play"], [class*="rovalra-quickplay"]',
-          )
-        )
-          continue;
-        const play = ownedElement('a', 'quick-play', signal);
-        play.className = 'btn-control-xs';
-        play.href = `roblox://experiences/start?placeId=${place}`;
-        play.textContent = '▶ Play';
-        play.setAttribute(
-          'aria-label',
-          `Play ${link.getAttribute('aria-label') || link.textContent?.trim() || 'experience'}`,
-        );
-        if (tile !== link && !tile.closest('a')) tile.append(play);
-        else (link.closest('a[href]') ?? link).after(play);
-      }
-    });
-  },
-};
-
 export const widePlayerCounts: FeatureDefinition = {
   ...base,
   id: 'wide-player-counts',
@@ -124,7 +67,7 @@ export const widePlayerCounts: FeatureDefinition = {
                 const id =
                   robloxId(
                     tile.getAttribute('data-universe-id') ?? link.getAttribute('data-universe-id'),
-                  ) ?? (await universeForPlace(place));
+                  ) ?? (await universeForPlace(place, signal));
                 return { tile, id, link, place };
               } catch {
                 return null;
@@ -134,7 +77,7 @@ export const widePlayerCounts: FeatureDefinition = {
           const rows = resolved.filter((row) => row !== null);
           const ids = [...new Set(rows.map(({ id }) => id))].sort().join(',');
           if (!ids || signal.aborted) continue;
-          const result = await requestData<{ data?: Stats[] }>('games', ids).catch(() => null);
+          const result = await robloxApi('games', ids, { signal }).catch(() => null);
           for (const { tile, id, link, place } of rows) {
             if (
               signal.aborted ||
@@ -210,8 +153,8 @@ export const detailedDates: FeatureDefinition = {
       if (!stats) return;
       if (!started) {
         started = true;
-        void universeForPlace(place)
-          .then((id) => requestData<{ data?: Stats[] }>('games', id))
+        void universeForPlace(place, signal)
+          .then((id) => robloxApi('games', id, { signal }))
           .then((result) => {
             data = result?.data?.[0];
             if (!signal.aborted) update();
@@ -262,51 +205,6 @@ export const detailedDates: FeatureDefinition = {
         stat.append(label, value);
         stats.append(stat);
       }
-    };
-    watchDom(signal, update);
-  },
-};
-
-export const communityCreationDate: FeatureDefinition = {
-  ...base,
-  id: 'community-creation-date',
-  category: 'communities',
-  title: 'Community creation date',
-  description: 'Show the exact creation date when Roblox makes it publicly available.',
-  availability: 'Community headers with a date returned by Roblox.',
-  routes: [{ hostnames, path: communityPath }],
-  activate({ route, signal }) {
-    const id = communityPath.exec(route.pathname)?.[1];
-    if (!id) return;
-    let started = false;
-    let date: string | undefined;
-    const update = () => {
-      const header = document.querySelector(
-        '.profile-header-details-owner-name, .group-header, [data-testid="community-header"]',
-      );
-      if (
-        !header ||
-        document.querySelector(
-          '.rovalra-group-created-date, .roseal-group-stats .group-created-date, [data-creator-toolkit-owner="community-creation-date"]',
-        )
-      )
-        return;
-      if (!started) {
-        started = true;
-        void requestData<{ data?: { id: number; created?: string }[] }>('community', id)
-          .then((data) => {
-            date = data?.data?.find((row) => String(row.id) === id)?.created;
-            if (!signal.aborted) update();
-          })
-          .catch(() => undefined);
-      }
-      const time = exactTime(date);
-      if (!time) return;
-      const row = ownedElement('div', 'community-creation-date', signal);
-      row.className = 'text-caption-medium';
-      row.append('Created ', time);
-      if (header.matches('.profile-header-details-owner-name')) header.after(row);
-      else header.append(row);
     };
     watchDom(signal, update);
   },

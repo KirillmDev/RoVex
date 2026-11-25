@@ -1,4 +1,4 @@
-import type { FeatureDefinition } from '../registry/types';
+import type { FeatureDefinition } from '../../registry/types';
 
 export const keyboardSearch: FeatureDefinition = {
   id: 'keyboard-search',

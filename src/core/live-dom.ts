@@ -3,6 +3,14 @@ let observer: MutationObserver | undefined;
 let frame = 0;
 const ownerIds = new WeakMap<AbortSignal, Set<string>>();
 
+function notify(update: () => void) {
+  try {
+    update();
+  } catch (error) {
+    if (import.meta.env.ROVEX_DEV_DIAGNOSTICS) console.warn('RoVex DOM callback failed', error);
+  }
+}
+
 export function watchDom(signal: AbortSignal, update: () => void): () => void {
   if (signal.aborted) return () => undefined;
   callbacks.add(update);
@@ -11,7 +19,7 @@ export function watchDom(signal: AbortSignal, update: () => void): () => void {
       if (frame) return;
       frame = requestAnimationFrame(() => {
         frame = 0;
-        for (const callback of callbacks) callback();
+        for (const callback of callbacks) notify(callback);
       });
     });
     observer.observe(document.documentElement, {
@@ -26,6 +34,9 @@ export function watchDom(signal: AbortSignal, update: () => void): () => void {
         'data-universe-id',
         'data-testid',
         'data-userid',
+        'data-user-id',
+        'aria-selected',
+        'role',
         'data-is-for-sale',
         'class',
       ],
@@ -41,7 +52,7 @@ export function watchDom(signal: AbortSignal, update: () => void): () => void {
     frame = 0;
   };
   signal.addEventListener('abort', unsubscribe, { once: true });
-  update();
+  notify(update);
   return unsubscribe;
 }
 

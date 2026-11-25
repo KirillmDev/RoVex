@@ -14,7 +14,7 @@
   --ct-accent: var(--color-action-emphasis-background, #335fff);
   --ct-accent-text: var(--color-action-emphasis-foreground, #ffffff);
   --ct-danger: var(--color-state-error, #c4281c);
-  font-family: 'Builder Sans', Inter, Arial, sans-serif;
+  font-family: var(--rovex-font);
 }
 
 :host(.ct-dark) {
@@ -534,4 +534,7 @@ select:focus-visible {
   *::after {
     transition: none !important;
   }
+}
+.ct-reset-feature {
+  margin-block-start: 8px;
 }

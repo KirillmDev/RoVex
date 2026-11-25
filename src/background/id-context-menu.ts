@@ -1,8 +1,8 @@
-import { idContextMenu, idFromLink, idLinkTypes } from '../features/id-context-menu';
-import { robloxId } from '../shared/roblox-data';
+import { idContextMenu, idFromLink, idLinkTypes } from '../features/developer/id-context-menu';
+import { robloxId } from '../api/roblox-data';
 import { getFeature, getGlobal } from '../storage/chrome-storage';
 import { featureKey, GLOBAL_KEY } from '../storage/schema';
-import { readRobloxData } from './data';
+import { readRobloxData } from '../api/transport';
 
 const prefix = 'rovex-id-';
 const site = 'https://www.roblox.com/*';

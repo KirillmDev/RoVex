@@ -1,5 +1,5 @@
-import type { FeatureDefinition } from '../registry/types';
-import { robloxId } from '../shared/roblox-data';
+import type { FeatureDefinition } from '../../registry/types';
+import { robloxId } from '../../api/roblox-data';
 
 const locale = '(?:[a-z]{2}(?:-[a-z]{2})?/)?';
 export const idLinkTypes = [
