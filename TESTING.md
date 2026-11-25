@@ -6,9 +6,11 @@ Run `npm run format:check`, `npm run verify`, `npm run build:dev`, and `node scr
 
 - **Vitest:** Tests isolated helpers, storage defaults and migration compatibility, feature lifecycle, API cancellation and caching, localization fallback, ID extraction, and Store DTO normalization.
 - **Chromium fixtures:** Run `npx playwright install chromium` and `npm run test:e2e` after building. The tests load the built bundle with mocked storage and API responses. They cover current-looking navigation, verified and unverified identities, dynamic sidebar counters, a visible Store panel following a hidden placeholder, sale filtering, repeated card-to-button hover, and cleanup on navigation and disable.
-- **Live web:** Set `LIVE_ROBLOX_E2E=1` and use extension-capable Playwright Chromium. The suite loads the built extension in a temporary profile and checks the Crossroads Store and timestamps, Roblox community creation date, and a real Adopt Me developer product URL. This does not sign into Roblox or buy anything.
+- **Live web:** Set `LIVE_ROBLOX_E2E=1` and use extension-capable Playwright Chromium. The suite loads the built extension in a temporary profile and checks catalog and bundle IDs, Crossroads Store and timestamps, Roblox community creation date, and developer products in Adopt Me and Bee Swarm Simulator. Set `LIVE_ROBLOX_CREATOR_STORE=1` to include the public Creator Store asset smoke check. The suite uses a signed-out browser and opens no purchase controls.
 
 Set `PLAYWRIGHT_EXECUTABLE_PATH` to a compatible local Chromium executable if needed. CI uses a fresh build and runs the offline fixtures by default.
+
+See [FEATURE-AUDIT.md](FEATURE-AUDIT.md) for coverage by feature ID.
 
 ## Signed-in and desktop checks
 

@@ -10,6 +10,7 @@ Development candidate for the Core Architecture & Foundation Update.
 
 ### Added
 
+- Added an About RoVex Settings section with the manifest version, project links, and team profiles backed by public Roblox metadata and thumbnails.
 - Chrome locale catalog with English fallback, parameterized messages, and registry-driven setting labels.
 - Per-feature settings reset that preserves saved feature data.
 - Development build and watch mode in `dist-dev/`.
@@ -21,8 +22,11 @@ Development candidate for the Core Architecture & Foundation Update.
 
 ### Fixed
 
+- Restored Marketplace ID and wishlist actions on modern detail titles and enabled the asset ID action on Creator Store routes.
+- Matched the Transactions link to the native sidebar row geometry and fixed verified badge placement on the sidebar account row.
+- Fixed Developer Products being blocked by an empty native Store container and used commerce product IDs in links. Preserved developer product IDs for record identity and hid entries already listed by Roblox.
 - Verified navigation badges support modern account metadata and self-profile links, preserve native badges, and require Roblox to confirm the signed-in account's verification.
-- Developer Products finds the visible Store panel and links using the developer product ID returned by Roblox. Availability and errors are reported separately.
+- Developer Products reports availability, empty results, and request failures separately.
 - Quick Play anchors its control within the card interaction boundary without shifting card layout.
 
 ### Improved
