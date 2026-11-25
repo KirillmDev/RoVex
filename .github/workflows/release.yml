@@ -1,0 +1,86 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF_NAME" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          git merge-base --is-ancestor HEAD origin/main
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run verify
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - name: Package extension
+        shell: pwsh
+        run: ./scripts/package-release.ps1 -Tag $env:GITHUB_REF_NAME
+      - name: Prepare release notes
+        run: node scripts/validate-build.mjs "$GITHUB_REF_NAME" --notes > release/notes.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-package
+          path: release/
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: release-package
+          path: release
+      - name: Publish validated assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          tag="$GITHUB_REF_NAME"
+          archive="RoVex-$tag.zip"
+          (cd release && sha256sum --check "$archive.sha256")
+          title="RoVex $tag"
+          if [[ "$tag" == v0.5.0 ]]; then title="RoVex $tag — Feature Expansion"; fi
+          if ! gh release view "$tag" >/dev/null; then
+            gh release create "$tag" --verify-tag --draft --title "$title" --notes-file release/notes.md
+          fi
+          for asset in "$archive" "$archive.sha256"; do
+            if gh release view "$tag" --json assets --jq '.assets[].name' | grep -Fx "$asset"; then
+              previous="$(mktemp -d)"
+              gh release download "$tag" --pattern "$asset" --dir "$previous"
+              cmp "release/$asset" "$previous/$asset"
+            else
+              gh release upload "$tag" "release/$asset"
+            fi
+          done
+          if [[ "$(gh release view "$tag" --json isDraft --jq .isDraft)" == true ]]; then
+            gh release edit "$tag" --draft=false
+          fi
