@@ -63,7 +63,11 @@ test('injects visible ID actions on current public Roblox routes', async () => {
       waitUntil: 'commit',
       timeout: 30_000,
     });
-    await page.locator('a[href="#store"]').first().click({ timeout: 15_000 });
+    const storeTab = page.locator('a[href="#store"]').first();
+    await expect(async () => {
+      await storeTab.click({ timeout: 3_000 });
+      await expect(products).toBeVisible({ timeout: 3_000 });
+    }).toPass({ timeout: 20_000, intervals: [500, 1000, 2000] });
     const liveProduct = products.locator('a[href="/developer-product/383310974/product/2215085"]');
     await expect(liveProduct).toHaveText('10000 Bucks', { timeout: 25_000 });
   } finally {
