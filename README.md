@@ -4,7 +4,9 @@ RoVex is an independent Manifest V3 extension for the main Roblox website. It is
 
 RoValra informed the settings and feature architecture. RoVex uses its own implementation.
 
-## Included in v0.5.0
+## Features
+
+The 0.6.0 foundation update retains all 33 configurable website features. It reorganizes the extension, separates development and production builds, and updates compatibility for navigation badges, developer products, and Quick Play.
 
 - Full-page settings at `https://www.roblox.com/my/account?creatorToolkit=settings`
 - A reversible Roblox account-settings integration that waits for a native mount region
@@ -16,7 +18,7 @@ RoValra informed the settings and feature architecture. RoVex uses its own imple
 - Local saved experiences, Marketplace wishlist, and optional recent experience history
 - A keyboard shortcut for native search and an option to hide the gift-card sidebar link
 
-### New in 0.5.0
+### Experiences, navigation, and developer tools
 
 | Category      | Feature                    | Where it works                                                                                                         |
 | ------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -51,6 +53,8 @@ npm run verify
 ```
 
 The unpacked extension is written to `RoVex/dist`.
+
+Use `npm run build:dev` or `npm run dev` to work from `dist-dev` with source maps. The production build omits source maps and local reference resources.
 
 ## Load into Chrome
 
@@ -91,4 +95,4 @@ Roblox site updates can change which layouts an enhancement recognizes. Some nav
 
 Vexor owns the RoVex project. Othrylz and DevNamedKirill develop it. RoValra served as a functional reference.
 
-No project-wide license has been selected. Public source visibility does not grant permission to redistribute the code or assets. The local Roblox2016 and RobloxRigs references are excluded from the repository and release packages pending a rights review.
+No project-wide license has been selected. Public source visibility does not grant permission to redistribute the code or assets. The local Roblox2016 and RobloxRigs references are under ignored `resources/local-reference/` and are excluded from release packages pending a rights review.

@@ -4,6 +4,32 @@ This log records notable changes. Dates for historical development snapshots rec
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-25
+
+Development candidate for the Core Architecture & Foundation Update.
+
+### Added
+
+- Chrome locale catalog with English fallback, parameterized messages, and registry-driven setting labels.
+- Per-feature settings reset that preserves saved feature data.
+- Development build and watch mode in `dist-dev/`.
+
+### Changed
+
+- Grouped feature modules by responsibility and separated the core runtime, API, settings, shared components, and styles. All 33 website feature IDs and existing storage keys are retained.
+- Moved local Roblox2016 and RobloxRigs reference materials outside the runtime asset tree.
+
+### Fixed
+
+- Verified navigation badges support modern account metadata and self-profile links, preserve native badges, and require Roblox to confirm the signed-in account's verification.
+- Developer Products finds the visible Store panel and links using the developer product ID returned by Roblox. Availability and errors are reported separately.
+- Quick Play anchors its control within the card interaction boundary without shifting card layout.
+
+### Improved
+
+- Shared DOM observation, lifecycle isolation, abortable API consumers, and bounded request caching and retries.
+- The popup and worker avoid loading website feature modules. Production builds exclude sourcemaps and development references.
+
 ## [0.5.0] - 2026-11-25
 
 ### Fixed
