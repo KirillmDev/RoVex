@@ -36,6 +36,8 @@ export function watchDom(signal: AbortSignal, update: () => void): () => void {
         'data-userid',
         'data-user-id',
         'aria-selected',
+        'aria-controls',
+        'aria-current',
         'role',
         'data-is-for-sale',
         'class',

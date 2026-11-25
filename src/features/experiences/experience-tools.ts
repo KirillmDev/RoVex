@@ -48,7 +48,7 @@ export const widePlayerCounts: FeatureDefinition = {
   availability: 'Wide experience cards with a rating footer.',
   routes: [{ hostnames }],
   activate({ signal }) {
-    const seen = new WeakMap<Element, string>();
+    const seen = new WeakMap<Element, { href: string; rating: Element }>();
     let queued = new Set<Element>();
     let busy = false;
     const load = async () => {
@@ -82,6 +82,7 @@ export const widePlayerCounts: FeatureDefinition = {
             if (
               signal.aborted ||
               !tile.isConnected ||
+              !tile.contains(link) ||
               linkedPlace(link) !== place ||
               tile.querySelector(
                 '[data-testid="game-tile-stats-player-count"], [data-creator-toolkit-owner="wide-player-counts"]',
@@ -123,13 +124,20 @@ export const widePlayerCounts: FeatureDefinition = {
     );
     watchDom(signal, () => {
       for (const tile of document.querySelectorAll('[data-testid="wide-game-tile"]')) {
-        if (!tile.querySelector('[data-testid="game-tile-stats-rating"]')) continue;
+        const rating = tile.querySelector('[data-testid="game-tile-stats-rating"]');
+        const native = tile.querySelector('[data-testid="game-tile-stats-player-count"]');
+        const injected = tile.querySelector('[data-creator-toolkit-owner="wide-player-counts"]');
+        if (native || !rating) {
+          injected?.remove();
+          seen.delete(tile);
+          continue;
+        }
         const href = tile.querySelector('a[href*="/games/"]')?.getAttribute('href');
-        if (!href || seen.get(tile) === href) continue;
-        seen.set(tile, href);
-        tile.querySelector('[data-creator-toolkit-owner="wide-player-counts"]')?.remove();
-        if (!tile.querySelector('[data-testid="game-tile-stats-player-count"]'))
-          intersection.observe(tile);
+        const previous = seen.get(tile);
+        if (!href || (previous?.href === href && previous.rating === rating)) continue;
+        seen.set(tile, { href, rating });
+        injected?.remove();
+        intersection.observe(tile);
       }
     });
   },

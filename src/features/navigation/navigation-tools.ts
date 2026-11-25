@@ -1,6 +1,7 @@
 import type { FeatureDefinition } from '../../registry/types';
 import { robloxApi, signedInUser } from '../../api/roblox-data';
 import { ownedElement, watchDom } from '../../core/live-dom';
+import { message } from '../../localization/messages';
 
 const base = {
   category: 'roblox-navigation',
@@ -84,35 +85,91 @@ export const transactionsLink: FeatureDefinition = {
   description: 'Open Roblox’s transaction history from the sidebar.',
   availability: 'Signed-in Roblox navigation.',
   activate({ signal }) {
+    const style = ownedElement('style', 'my-transactions-link', signal);
+    style.textContent = `
+      [data-rovex-transaction-link] {
+        display: flex; align-items: center; gap: 8px; min-height: 40px;
+        border-radius: 8px; color: var(--color-content-emphasis, inherit);
+        font: 700 16px/22px "Builder Sans", system-ui, sans-serif;
+        text-decoration: none;
+      }
+      [data-rovex-transaction-link]:hover {
+        background: var(--color-state-hover, color-mix(in srgb, currentColor 10%, transparent));
+        text-decoration: none;
+      }
+      [data-rovex-transaction-link]:focus-visible {
+        outline: 2px solid var(--color-content-emphasis, currentColor); outline-offset: -2px;
+      }
+      [data-rovex-transaction-link]:active {
+        background: var(--color-state-press, color-mix(in srgb, currentColor 16%, transparent));
+      }
+      [data-rovex-transaction-link] svg { display: block; width: 24px; height: 24px; flex: 0 0 24px; }
+      [data-rovex-transaction-icon] {
+        display: grid; place-items: center; width: 40px; height: 40px; flex: 0 0 40px;
+      }
+      [data-rovex-transaction-label] { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    `;
+    document.head.append(style);
     watchDom(signal, () => {
       if (!signedInUser()) return;
-      const nav = [...document.querySelectorAll(sidebar)].find((root) =>
-        root.querySelector('a[href*="/communities"], a[href*="/groups"]'),
-      );
-      if (!nav || nav.querySelector('a[href="/transactions"], a[href$="roblox.com/transactions"]'))
-        return;
-      const anchor = nav.querySelector<HTMLAnchorElement>(
-        'a[href*="/communities"], a[href*="/groups"]',
-      );
-      const row = anchor?.closest('li, [role="listitem"]');
-      if (!row || !nav.contains(row)) return;
-      const item = ownedElement(
-        row.tagName === 'LI' ? 'li' : 'div',
-        'my-transactions-link',
-        signal,
-      );
-      if (row.getAttribute('role') === 'listitem') item.setAttribute('role', 'listitem');
-      item.className = row.className;
-      const link = document.createElement('a');
-      link.href = '/transactions';
-      link.className = [...(anchor?.classList ?? [])]
-        .filter((value) => !/active|selected/i.test(value))
-        .join(' ');
-      link.textContent = 'My Transactions';
-      if (!link.className)
-        link.style.cssText = 'display:block;padding:8px 12px;color:inherit;font-weight:600;';
-      item.append(link);
-      row.after(item);
+      for (const anchor of document.querySelectorAll<HTMLAnchorElement>(
+        `:is(${sidebar}) a[href]`,
+      )) {
+        const url = new URL(anchor.href);
+        if (
+          url.origin !== 'https://www.roblox.com' ||
+          !/^\/(?:[a-z]{2}(?:-[a-z]{2})?\/)?(?:communities|groups)\/?$/i.test(url.pathname)
+        )
+          continue;
+        const row = anchor.closest('li, [role="listitem"]') ?? anchor;
+        const list = row.parentElement;
+        const nav = anchor.closest('nav') ?? anchor.closest(sidebar);
+        if (
+          !list ||
+          !nav?.contains(row) ||
+          nav.querySelector('a[href="/transactions"], a[href$="roblox.com/transactions"]')
+        )
+          continue;
+        const link = ownedElement('a', 'my-transactions-link', signal);
+        link.href = '/transactions';
+        link.dataset.rovexTransactionLink = '';
+        link.className = [...anchor.classList]
+          .filter((value) => !/active|selected/i.test(value))
+          .join(' ');
+        const nativeStyle = getComputedStyle(anchor);
+        link.style.paddingInlineStart = nativeStyle.paddingInlineStart || '4px';
+        link.style.paddingInlineEnd = nativeStyle.paddingInlineEnd || '2px';
+        const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        icon.setAttribute('viewBox', '0 0 24 24');
+        icon.setAttribute('aria-hidden', 'true');
+        const lines = document.createElementNS(icon.namespaceURI, 'path');
+        lines.setAttribute('d', 'M4 8h15m-4-4 4 4-4 4M20 16H5m4-4-4 4 4 4');
+        lines.setAttribute('fill', 'none');
+        lines.setAttribute('stroke', 'currentColor');
+        lines.setAttribute('stroke-width', '1.75');
+        lines.setAttribute('stroke-linecap', 'round');
+        lines.setAttribute('stroke-linejoin', 'round');
+        icon.append(lines);
+        const slot = document.createElement('span');
+        slot.dataset.rovexTransactionIcon = '';
+        slot.append(icon);
+        const label = document.createElement('span');
+        label.dataset.rovexTransactionLabel = '';
+        label.textContent = message('my_transactions', 'My Transactions');
+        link.append(slot, label);
+        if (row === anchor) row.after(link);
+        else {
+          const item = ownedElement(
+            row.tagName === 'LI' ? 'li' : 'div',
+            'my-transactions-link',
+            signal,
+          );
+          if (row.getAttribute('role') === 'listitem') item.setAttribute('role', 'listitem');
+          item.className = row.className;
+          item.append(link);
+          row.after(item);
+        }
+      }
     });
   },
 };

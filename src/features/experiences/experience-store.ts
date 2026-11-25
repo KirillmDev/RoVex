@@ -12,13 +12,20 @@ import { message } from '../../localization/messages';
 import styles from './experience-store.css?inline';
 import tokens from '../../styles/tokens.css?inline';
 
-type Item = { id: string; name: string; price?: number; onSale?: boolean; icon?: string };
+type Item = {
+  id: string;
+  linkId?: string;
+  name: string;
+  price?: number;
+  onSale?: boolean;
+  icon?: string;
+};
 type Filter = 'all' | 'on' | 'off';
 const FILTER_EVENT = 'rovex:store-filter';
 const hidden = 'data-rovex-sale-hidden';
 const modes = new WeakMap<Element, Filter>();
 const storeSelector =
-  '.tab-pane.store, #store-tab, [data-testid="experience-store-tab-panel"], [data-testid="store-tab-panel"]';
+  '.tab-pane.store, #store.tab-pane, #store-tab, [data-testid="experience-store-tab-panel"], [data-testid="store-tab-panel"]';
 const owner = (id: string) => `[data-creator-toolkit-owner="${id}"]`;
 
 function visibleStore(): Element | undefined {
@@ -36,7 +43,11 @@ function visibleStore(): Element | undefined {
     if (panel) panels.push(panel);
   }
   return panels.find(
-    (panel) => !panel.closest('[hidden], [aria-hidden="true"]') && panel.getClientRects().length,
+    (panel) =>
+      !panel.matches('a, button, [role="tab"]') &&
+      !panel.closest('[hidden], [aria-hidden="true"]') &&
+      getComputedStyle(panel).visibility === 'visible' &&
+      panel.getClientRects().length,
   );
 }
 
@@ -48,7 +59,13 @@ export function normalizeStoreItem(value: unknown, kind: 'products' | 'passes'):
   if (!value || typeof value !== 'object') return null;
   const row = value as Record<string, unknown>;
   const id = robloxId(
-    kind === 'products' ? (row.developerProductId ?? row.DeveloperProductId ?? row.id) : row.id,
+    kind === 'products'
+      ? (row.developerProductId ??
+          row.DeveloperProductId ??
+          row.productId ??
+          row.ProductId ??
+          row.id)
+      : row.id,
   );
   const name = row.displayName ?? row.DisplayName ?? row.name ?? row.Name;
   if (!id || typeof name !== 'string' || !name.trim()) return null;
@@ -56,6 +73,9 @@ export function normalizeStoreItem(value: unknown, kind: 'products' | 'passes'):
   const sale = row.isForSale ?? row.IsForSale;
   return {
     id,
+    ...(kind === 'products' && {
+      linkId: robloxId(row.productId ?? row.ProductId) ?? id,
+    }),
     name: name.trim(),
     price:
       typeof price === 'number' && Number.isSafeInteger(price) && price >= 0 ? price : undefined,
@@ -72,7 +92,9 @@ export function normalizeStoreItem(value: unknown, kind: 'products' | 'passes'):
 }
 
 async function loadItems(kind: 'products' | 'passes', place: string, signal: AbortSignal) {
-  const universe = await universeForPlace(place, signal);
+  const universe =
+    robloxId(document.querySelector('#game-detail-meta-data')?.getAttribute('data-universe-id')) ??
+    (await universeForPlace(place, signal));
   const items = new Map<string, Item>();
   let cursor = '';
   const visited = new Set<string>();
@@ -84,11 +106,16 @@ async function loadItems(kind: 'products' | 'passes', place: string, signal: Abo
     const rows = products
       ? (products.developerProducts ?? products.DeveloperProducts)
       : passes?.gamePasses;
-    if (!Array.isArray(rows)) throw new Error('Unexpected Store response');
+    if (!Array.isArray(rows)) throw new RobloxApiError('unavailable');
+    let valid = 0;
     for (const row of rows) {
       const item = normalizeStoreItem(row, kind);
-      if (item) items.set(item.id, item);
+      if (item) {
+        items.set(item.id, item);
+        valid++;
+      }
     }
+    if (rows.length && !valid) throw new RobloxApiError('unavailable');
     cursor = products?.nextPageCursor ?? products?.NextPageCursor ?? passes?.nextPageToken ?? '';
     if (typeof cursor !== 'string' || cursor.length > 1024) throw new RobloxApiError('unavailable');
     if (!cursor) break;
@@ -162,7 +189,7 @@ export const developerProducts: FeatureDefinition = {
       const store = visibleStore();
       if (active && active.panel === store && active.section.isConnected) return;
       clear();
-      if (!store || store.querySelector('#rbx-developer-products, .rovalra-dev-products')) return;
+      if (!store || store.querySelector('.rovalra-dev-products')) return;
       const listeners = new AbortController();
       const section = makeSection(message('developer_products', 'Developer products'));
       section.host.dataset.creatorToolkitOwner = 'view-developer-products';
@@ -179,33 +206,55 @@ export const developerProducts: FeatureDefinition = {
           if (signal.aborted || !section.host.isConnected) return;
           const rows = new Map<string, HTMLLIElement>();
           for (const item of items.values()) {
-            const row = card(item, `/developer-product/${universe}/product/${item.id}`);
+            const row = card(
+              item,
+              `/developer-product/${universe}/product/${item.linkId ?? item.id}`,
+            );
             rows.set(item.id, row);
             section.grid.append(row);
           }
           const render = () => {
             const mode = modes.get(store) ?? 'all';
+            const nativeLinks = new Set(
+              [
+                ...store.querySelectorAll<HTMLAnchorElement>(
+                  '#rbx-developer-products a[href*="/developer-product/"]',
+                ),
+              ]
+                .filter((link) => link.getClientRects().length)
+                .map((link) => new URL(link.href).pathname.replace(/\/$/, '')),
+            );
             let visible = 0;
+            let nativeCount = 0;
             for (const item of items.values()) {
-              const show = matchesStoreFilter(mode, item.onSale);
-              rows.get(item.id)!.hidden = !show;
+              const duplicate = nativeLinks.has(
+                `/developer-product/${universe}/product/${item.linkId ?? item.id}`,
+              );
+              if (duplicate) nativeCount++;
+              const show = !duplicate && matchesStoreFilter(mode, item.onSale);
+              const row = rows.get(item.id)!;
+              if (row.hidden === show) row.hidden = !show;
               if (show) visible++;
             }
-            section.note.textContent = !items.size
+            const feedback = !items.size
               ? 'No publicly listed developer products.'
-              : !visible
-                ? 'No products match this filter.'
-                : [
-                    partial ? 'Showing the first available pages.' : '',
-                    mode !== 'all' && [...items.values()].some((item) => item.onSale === undefined)
-                      ? 'Products with unknown sale status remain visible.'
-                      : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' ');
+              : !visible && nativeCount === items.size && !partial
+                ? 'These developer products are already listed above.'
+                : !visible
+                  ? 'No products match this filter.'
+                  : [
+                      partial ? 'Showing the first available pages.' : '',
+                      mode !== 'all' &&
+                      [...items.values()].some((item) => item.onSale === undefined)
+                        ? 'Products with unknown sale status remain visible.'
+                        : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ');
+            if (section.note.textContent !== feedback) section.note.textContent = feedback;
           };
           store.addEventListener(FILTER_EVENT, render, { signal: listeners.signal });
-          render();
+          watchDom(listeners.signal, render);
           const icons = [
             ...new Set([...items.values()].flatMap((item) => (item.icon ? [item.icon] : []))),
           ];
@@ -271,6 +320,11 @@ export const storeSaleFilter: FeatureDefinition = {
     document.head.append(style);
     const update = () => {
       const store = visibleStore();
+      if (activeStore && activeStore !== store) {
+        clean?.();
+        clean = undefined;
+        activeStore = undefined;
+      }
       if (
         !store ||
         !store.getClientRects().length ||

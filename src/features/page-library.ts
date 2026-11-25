@@ -1,6 +1,7 @@
 import type { FeatureDefinition } from '../registry/types';
 import { getFeature, setFeature } from '../storage/chrome-storage';
 import styles from './page-library.css?inline';
+import { marketplaceHeading } from './marketplace/item-page';
 
 type Entry = { path: string; title: string };
 const hostnames = ['www.roblox.com'];
@@ -55,41 +56,52 @@ function createLibrary(
     settings: [],
     dataKeys: ['entries'],
     supportedSites: ['roblox'],
-    routes: [{ hostnames, path: page }, ...(!items ? [{ hostnames, path: home }] : [])],
-    async activate({ route, signal }) {
+    routes: [
+      { hostnames, path: page },
+      { hostnames, path: items ? new RegExp(`^/${prefix}catalog/?$`, 'i') : home },
+    ],
+    async activate({ route, signal, record }) {
       const path = canonicalLibraryPath(route.pathname, page);
-      const target = document.querySelector(
-        path
-          ? items
-            ? '#item-container, [data-testid="item-details"]'
-            : '.game-main-content, [data-testid="experience-header"]'
-          : '#HomeContainer, [data-testid="home-page"]',
-      );
+      const itemHeading = items && path ? marketplaceHeading() : null;
+      const target =
+        itemHeading?.parentElement ??
+        document.querySelector(
+          path
+            ? items
+              ? '#item-container, [data-testid="item-details"]'
+              : '.game-main-content, [data-testid="experience-header"]'
+            : items
+              ? 'main, [role="main"]'
+              : '#HomeContainer, [data-testid="home-page"]',
+        );
       if (!target) return { isHealthy: () => false };
 
-      const heading = target.querySelector('h1, h2, .game-name');
+      const heading = itemHeading ?? target.querySelector('h1, h2, .game-name');
       const label =
         heading?.textContent?.trim() ||
         document.title.replace(/\s*[|–-]\s*(?:Play on )?Roblox.*$/i, '').trim();
       const current = path ? { path, title: label.slice(0, 120) || path } : null;
+      const updateEntries = async (update: (entries: Entry[]) => Entry[]) => {
+        const write = async () => {
+          if (signal.aborted) return;
+          const latest = await getFeature(feature);
+          if (signal.aborted || !latest.enabled) return;
+          const before = readEntries(latest.data?.entries, page);
+          const entries = update(before).slice(0, limit);
+          if (JSON.stringify(before) !== JSON.stringify(entries))
+            await setFeature(feature, { ...latest, data: { entries } });
+        };
+        if (navigator.locks) await navigator.locks.request(`rovex-library-${mode}`, write);
+        else await write();
+      };
       if (recent && current) {
-        const record = await getFeature(feature);
-        const entries = readEntries(record.data?.entries, page);
-        if (!signal.aborted && entries[0]?.path !== current.path) {
-          await setFeature(feature, {
-            ...record,
-            data: {
-              entries: [current, ...entries.filter((entry) => entry.path !== current.path)].slice(
-                0,
-                limit,
-              ),
-            },
-          });
-        }
+        await updateEntries((entries) =>
+          entries[0]?.path === current.path
+            ? entries
+            : [current, ...entries.filter((entry) => entry.path !== current.path)],
+        );
       }
       if (signal.aborted || (recent && path)) return;
-      const record = await getFeature(feature);
-      if (signal.aborted || !target.isConnected) return { isHealthy: () => false };
       const entries = readEntries(record.data?.entries, page);
       const host = document.createElement('span');
       host.dataset.creatorToolkitOwner = mode;
@@ -118,15 +130,8 @@ function createLibrary(
           async () => {
             element.disabled = true;
             try {
-              const latest = await getFeature(feature);
-              if (!signal.aborted) {
-                await setFeature(feature, {
-                  ...latest,
-                  data: {
-                    entries: update(readEntries(latest.data?.entries, page)).slice(0, limit),
-                  },
-                });
-              }
+              await updateEntries(update);
+              element.disabled = false;
             } catch {
               element.textContent = 'Could not save. Retry';
               element.disabled = false;
@@ -170,7 +175,10 @@ function createLibrary(
       shadow.append(style, details);
       if (heading) heading.after(host);
       else target.prepend(host);
-      return { isHealthy: () => host.isConnected, deactivate: () => host.remove() };
+      return {
+        isHealthy: () => host.isConnected && (!heading || heading.isConnected),
+        deactivate: () => host.remove(),
+      };
     },
   };
   return feature;

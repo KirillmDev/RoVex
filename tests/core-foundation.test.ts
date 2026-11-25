@@ -59,7 +59,7 @@ describe('0.6.0 foundation', () => {
     }
   });
 
-  it('uses DeveloperProductId rather than the commerce ProductId', () => {
+  it('keeps DeveloperProductId and the commerce link ID distinct', () => {
     expect(
       normalizeStoreItem(
         {
@@ -74,6 +74,7 @@ describe('0.6.0 foundation', () => {
       ),
     ).toEqual({
       id: '2215085',
+      linkId: '452166553',
       name: '10000 Bucks',
       icon: '6998151061',
       price: 3910,

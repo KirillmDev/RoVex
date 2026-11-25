@@ -6,6 +6,7 @@ import type {
   RouteSnapshot,
   SiteId,
 } from '../../registry/types';
+import { marketplaceHeading } from '../marketplace/item-page';
 
 type IdCopyFeatureSpec = {
   id: string;
@@ -28,8 +29,12 @@ const PAGE_HEADERS: Partial<Record<CategoryId, string>> = {
 
 async function copyText(value: string): Promise<void> {
   if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(value);
-    return;
+    try {
+      await navigator.clipboard.writeText(value);
+      return;
+    } catch {
+      // Some embedded or policy-limited pages expose the API but reject writes.
+    }
   }
   const textarea = document.createElement('textarea');
   textarea.value = value;
@@ -37,13 +42,17 @@ async function copyText(value: string): Promise<void> {
   textarea.style.cssText = 'position:fixed;left:-10000px;top:0;opacity:0;';
   document.body.append(textarea);
   textarea.select();
-  const copied = document.execCommand('copy');
-  textarea.remove();
-  if (!copied) throw new Error('Clipboard copy was rejected.');
+  const focused = document.activeElement;
+  try {
+    if (!document.execCommand('copy')) throw new Error('Clipboard copy was rejected.');
+  } finally {
+    textarea.remove();
+    if (focused instanceof HTMLElement) focused.focus({ preventScroll: true });
+  }
 }
 
 const ACTION_STYLES = `
-  :host { display:inline-block; margin:4px 0; max-width:100%; color-scheme:light dark; }
+  :host { display:inline-block; margin:4px 0; max-width:100%; color-scheme:inherit; }
   * { box-sizing:border-box; }
   .action {
     display:inline-flex; align-items:center; flex-wrap:wrap; gap:8px;
@@ -53,7 +62,7 @@ const ACTION_STYLES = `
   .copy { min-width:0; }
   code { overflow:hidden; text-overflow:ellipsis; font:600 14px/20px ui-monospace, SFMono-Regular, Consolas, monospace; }
   button {
-    flex:none; min-height:32px; padding:5px 12px; border:1px solid var(--color-border-default, color-mix(in srgb, CanvasText 24%, transparent)); border-radius:8px;
+    flex:none; min-height:32px; padding:5px 12px; border:1px solid var(--color-stroke-default, color-mix(in srgb, CanvasText 24%, transparent)); border-radius:8px;
     background:transparent;
     color:var(--color-content-emphasis, CanvasText);
     font:600 14px/20px Builder Sans, Inter, Arial, sans-serif; cursor:pointer;
@@ -77,8 +86,11 @@ function mountIdAction(
     .forEach((node) => node.remove());
   const selector = PAGE_HEADERS[category];
   const header = selector ? document.querySelector(selector) : null;
-  const heading = header?.querySelector('h1, h2');
-  if (!header) return { isHealthy: () => false };
+  const heading =
+    category === 'marketplace'
+      ? (marketplaceHeading() ?? header?.querySelector('h1, h2'))
+      : header?.querySelector('h1, h2');
+  if (!header && !heading) return { isHealthy: () => false };
 
   const host = document.createElement('div');
   host.dataset.creatorToolkitOwner = owner;
@@ -97,7 +109,9 @@ function mountIdAction(
   const button = document.createElement('button');
   button.type = 'button';
   button.textContent = `Copy ${idLabel}`;
-  const normalText = button.textContent;
+  const feedback = document.createElement('span');
+  feedback.setAttribute('role', 'status');
+  feedback.hidden = true;
   let resetTimer: number | undefined;
   button.addEventListener(
     'click',
@@ -105,32 +119,35 @@ function mountIdAction(
       window.clearTimeout(resetTimer);
       try {
         await copyText(value);
+        if (signal.aborted) return;
         button.dataset.state = 'success';
-        button.textContent = 'Copied';
+        feedback.textContent = 'Copied';
       } catch {
+        if (signal.aborted) return;
         button.dataset.state = 'error';
-        button.textContent = 'Copy failed';
+        feedback.textContent = 'Copy failed';
       }
+      feedback.hidden = false;
       resetTimer = window.setTimeout(() => {
         if (signal.aborted) return;
         delete button.dataset.state;
-        button.textContent = normalText;
+        feedback.hidden = true;
       }, 1400);
     },
     { signal },
   );
-  action.append(button);
+  action.append(button, feedback);
   shadow.append(style, action);
 
   if (heading) heading.after(host);
-  else header.append(host);
+  else header?.append(host);
 
   return {
     deactivate: () => {
       window.clearTimeout(resetTimer);
       host.remove();
     },
-    isHealthy: () => host.isConnected,
+    isHealthy: () => host.isConnected && (!heading || heading.isConnected),
   };
 }
 

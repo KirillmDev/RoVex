@@ -17,7 +17,8 @@ const fixture = `<!doctype html>
   <meta name="user-data" data-user-id="42">
   <header><a href="/my/profile"><span data-testid="profile-name">Player</span></a><span id="nav-robux-amount">1M+</span></header>
   <nav id="left-navigation-container"><ul>
-    <li><a href="/users/42/profile">Player</a></li>
+    <li><a href="/users/profile"><div aria-hidden="true"></div><span class="identity">Player</span><span aria-hidden="true">›</span></a></li>
+    <li><a href="/users/profile"><span>Profile</span></a></li>
     <li><a href="/my/messages">Messages</a><span id="messages">110</span></li>
     <li><a href="/users/friends">Friends</a><span id="friends"></span></li>
     <li><a href="/communities">Communities</a><span id="unrelated">12</span></li>
@@ -36,7 +37,7 @@ const fixture = `<!doctype html>
     </ul>
     <section class="tab-pane store" hidden></section>
     <button role="tab" id="experience-store" aria-selected="true" aria-controls="panel-store-content">Store</button>
-    <section role="tabpanel" id="panel-store-content"><ul id="rbx-passes-container">
+    <section role="tabpanel" id="panel-store-content"><div id="rbx-developer-products" hidden></div><ul id="rbx-passes-container">
       <li id="on-sale"><a href="/game-pass/61">On sale pass</a></li>
     </ul></section>
     <div class="group-header"><h1>Example community</h1></div>
@@ -100,7 +101,15 @@ test('renders, updates, and cleans up expansion features using the built content
         universe: { universeId: 50 },
         games: { data: [{ id: 50, playing: 123, created: date, updated: date }] },
         products: {
-          developerProducts: [{ id: 70, name: 'Boost', priceInRobux: 19, isForSale: true }],
+          developerProducts: [
+            {
+              DeveloperProductId: 70,
+              ProductId: 701,
+              DisplayName: 'Boost',
+              PriceInRobux: 19,
+              IsForSale: true,
+            },
+          ],
         },
         passes: {
           gamePasses: [
@@ -164,9 +173,33 @@ test('renders, updates, and cleans up expansion features using the built content
   expect(await standard.boundingBox()).toEqual(dimensions);
   await expect(standard.locator('a.game-card-link')).toHaveAttribute('href', '/games/19/Second');
   await expect(page.locator(owner('wide-player-counts'))).toContainText('123');
+  await wide.evaluate((node) => {
+    const native = document.createElement('span');
+    native.dataset.testid = 'game-tile-stats-player-count';
+    native.textContent = '123 playing';
+    node.append(native);
+  });
+  await expect(page.locator(owner('wide-player-counts'))).toHaveCount(0);
   await expect(page.locator('.game-stat time')).toHaveCount(2);
   await expect(page.locator('.game-stat time').first()).toHaveAttribute('datetime', stamp);
   await expect(page.locator(owner('view-developer-products'))).toContainText('19 Robux');
+  await expect(page.getByRole('link', { name: 'Boost' })).toHaveAttribute(
+    'href',
+    '/developer-product/50/product/701',
+  );
+  const nativeProducts = page.locator('#rbx-developer-products');
+  await nativeProducts.evaluate((section) => {
+    section.removeAttribute('hidden');
+    const link = document.createElement('a');
+    link.href = '/developer-product/50/product/701';
+    link.textContent = 'Native Boost';
+    section.append(link);
+  });
+  await expect(
+    page.locator(owner('view-developer-products')).getByRole('link', { name: 'Boost' }),
+  ).toHaveCount(0);
+  await nativeProducts.evaluate((section) => section.setAttribute('hidden', ''));
+  await expect(page.getByRole('link', { name: 'Boost', exact: true })).toBeVisible();
   const storePanel = page.locator('#panel-store-content');
   await storePanel.evaluate((panel) => {
     (panel as HTMLElement).hidden = true;
@@ -181,8 +214,14 @@ test('renders, updates, and cleans up expansion features using the built content
   await expect(page.getByRole('link', { name: 'Off sale pass', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Boost', exact: true })).toBeHidden();
   await expect(page.locator('#nav-robux-amount')).toHaveText(/1.234.567/);
-  await expect(page.getByRole('link', { name: 'My Transactions' })).toHaveCount(1);
+  const transactions = page.getByRole('link', { name: 'My Transactions' });
+  await expect(transactions).toHaveCount(1);
+  await expect(transactions.locator('svg')).toHaveCSS('width', '24px');
+  await expect(transactions).toHaveCSS('min-height', '40px');
   await expect(page.locator(owner('verified-navigation-badges'))).toHaveCount(2);
+  await expect(page.locator('.identity').locator(owner('verified-navigation-badges'))).toHaveCount(
+    1,
+  );
   const profileName = page.getByTestId('profile-name');
   await profileName.evaluate((node) => {
     const badge = document.createElement('span');

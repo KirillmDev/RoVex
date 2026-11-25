@@ -11,6 +11,18 @@ const nativeBadge =
 const owned = '[data-creator-toolkit-owner="verified-navigation-badges"]';
 const nameSelector =
   '.text-header, .font-header-2, .text-overflow, [data-testid*="username" i], [data-testid="profile-name"]';
+const normalizeName = (value: string | null) => value?.trim().replace(/^@/, '').toLowerCase();
+
+function accountLabel(link: HTMLAnchorElement, names: Set<string>): Element | null {
+  // The sidebar uses plain spans nested inside a flex row; the header also has
+  // legacy named containers. Prefer the innermost text label on either surface.
+  return (
+    [...link.querySelectorAll(`${nameSelector}, span, p, div`)].reverse().find((node) => {
+      const name = normalizeName(node.textContent);
+      return name && names.has(name) && !node.closest('[aria-hidden="true"]');
+    }) ?? (names.has(normalizeName(link.textContent) ?? '') ? link : null)
+  );
+}
 
 export const verifiedNavigationBadges: FeatureDefinition = {
   id: 'verified-navigation-badges',
@@ -94,21 +106,22 @@ export const verifiedNavigationBadges: FeatureDefinition = {
         if (url.origin !== 'https://www.roblox.com') continue;
         const path = url.pathname.replace(/^\/[a-z]{2}(?:-[a-z]{2})?(?=\/(?:users|my)\/)/i, '');
         const isSpecific = new RegExp(`^/users/${id}/profile/?$`, 'i').test(path);
-        if (!isSpecific && !/^\/my\/profile\/?$/i.test(path)) continue;
+        if (!isSpecific && !/^\/(?:my|users)\/profile\/?$/i.test(path)) continue;
         const existing = link.querySelector(owned);
-        if (link.querySelector(nativeBadge)) {
+        const identity = link.closest('li, [role="listitem"]') ?? link;
+        if (identity.querySelector(nativeBadge)) {
           existing?.remove();
           rendered = true;
           continue;
         }
-        if (existing) {
+        const label = accountLabel(link, names);
+        if (!label) continue;
+        if (existing?.parentElement === label) {
           displayed.add(existing);
           rendered = true;
           continue;
         }
-        const label = link.querySelector(nameSelector) ?? link;
-        const text = label.textContent?.trim().replace(/^@/, '').toLowerCase();
-        if (!text || (!isSpecific && names.size && !names.has(text))) continue;
+        existing?.remove();
         const badge = ownedElement('span', 'verified-navigation-badges', signal);
         badge.append(verificationIcon(message('verified_account', 'Roblox verified account')));
         label.append(badge);

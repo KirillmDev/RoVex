@@ -37,7 +37,12 @@ export const keyboardSearch: FeatureDefinition = {
         )
           return;
         if (
-          document.querySelector('dialog[open], [role="dialog"][aria-modal="true"]:not([hidden])')
+          [...document.querySelectorAll('dialog[open], [role="dialog"][aria-modal="true"]')].some(
+            (dialog) =>
+              !dialog.closest('[hidden], [aria-hidden="true"]') &&
+              getComputedStyle(dialog).visibility === 'visible' &&
+              dialog.getClientRects().length,
+          )
         )
           return;
         const search = Array.from(

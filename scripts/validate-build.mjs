@@ -36,10 +36,12 @@ assert(
   manifest.manifest_version === 3 && manifest.name === 'RoVex',
   'Invalid Manifest V3 identity',
 );
+const contentScopes = ['https://create.roblox.com/store/*', 'https://www.roblox.com/*'];
 assert(
   manifest.content_scripts?.length &&
     manifest.content_scripts.every(
-      (entry) => entry.matches?.length === 1 && entry.matches[0] === 'https://www.roblox.com/*',
+      (entry) =>
+        JSON.stringify([...(entry.matches ?? [])].sort()) === JSON.stringify(contentScopes),
     ),
   'Unexpected content script scope',
 );
@@ -76,6 +78,9 @@ check(manifest.background?.service_worker);
 for (const entry of manifest.content_scripts) {
   for (const file of [...(entry.js ?? []), ...(entry.css ?? [])]) check(file);
 }
+for (const file of Object.values(manifest.icons ?? {})) check(file);
+for (const entry of manifest.web_accessible_resources ?? [])
+  for (const file of entry.resources) check(file);
 const popupAssets = [...readFileSync(popup, 'utf8').matchAll(/(?:src|href)="(\/?assets\/[^"]+)"/g)];
 assert(
   popupAssets.some(([, file]) => file.endsWith('.js')),

@@ -1,8 +1,49 @@
 import { act } from 'react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { mountSettings } from '../src/settings/mount';
 
 describe('settings UI', () => {
+  it('shows manifest version and team cards with only API-confirmed badges', async () => {
+    vi.mocked(chrome.runtime.sendMessage).mockImplementation(async (request: unknown) => {
+      const { kind, id } = request as { kind: string; id: string };
+      return {
+        ok: true,
+        data:
+          kind === 'headshots'
+            ? {
+                data: [
+                  {
+                    targetId: 10436912462,
+                    state: 'Completed',
+                    imageUrl: 'https://tr.rbxcdn.com/avatar.png',
+                  },
+                ],
+              }
+            : {
+                id,
+                name: id === '10436912462' ? 'VexorCreator' : undefined,
+                hasVerifiedBadge: id === '10436912462',
+              },
+      };
+    });
+    let mounted!: ReturnType<typeof mountSettings>;
+    await act(async () => {
+      mounted = mountSettings(document.body);
+    });
+    const shadow = mounted.host.shadowRoot!;
+    const about = [...shadow.querySelectorAll('button')].find(
+      (button) => button.textContent === 'About RoVex',
+    )!;
+    await act(async () => about.click());
+    expect(shadow.querySelector('.ct-about-version')?.textContent).toBe('Version 0.1.0');
+    expect(shadow.querySelectorAll('.ct-team-row')).toHaveLength(3);
+    expect(shadow.querySelectorAll('.ct-team-row [role="img"]')).toHaveLength(1);
+    expect(shadow.querySelector('.ct-team-row img')?.getAttribute('src')).toBe(
+      'https://tr.rbxcdn.com/avatar.png',
+    );
+    expect(shadow.textContent).not.toContain('Creator Hub support is deferred');
+    await act(async () => mounted.unmount());
+  });
   it('reversibly replaces account content, searches, and remains available when disabled', async () => {
     const target = document.createElement('main');
     const nativeContent = document.createElement('section');

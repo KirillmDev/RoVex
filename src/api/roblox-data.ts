@@ -10,6 +10,7 @@ export type DataKind =
   | 'products'
   | 'passes'
   | 'icons'
+  | 'headshots'
   | 'community'
   | 'balance'
   | 'user'
@@ -33,6 +34,7 @@ export type RobloxResponses = {
   };
   passes: { gamePasses?: unknown[]; nextPageToken?: string };
   icons: { data?: { targetId: number; imageUrl?: string }[] };
+  headshots: { data?: { targetId: number; state?: string; imageUrl?: string }[] };
   community: { data?: { id: number; created?: string }[] };
   balance: { robux?: number };
   user: { id?: number | string; name?: string; displayName?: string; hasVerifiedBadge?: boolean };
@@ -82,6 +84,13 @@ export function robloxEndpoint(kind: unknown, value: unknown, cursor?: unknown):
       return list
         ? publicData(
             `https://thumbnails.roblox.com/v1/assets?assetIds=${list}&size=150x150&format=Png&isCircular=false`,
+            3600_000,
+          )
+        : null;
+    case 'headshots':
+      return list
+        ? publicData(
+            `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${list}&size=150x150&format=Png&isCircular=false`,
             3600_000,
           )
         : null;

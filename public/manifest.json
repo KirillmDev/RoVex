@@ -4,6 +4,7 @@
   "version": "0.6.0",
   "description": "__MSG_extension_description__",
   "default_locale": "en",
+  "icons": { "128": "icons/rovex-128.png" },
   "permissions": ["storage", "contextMenus", "clipboardWrite"],
   "host_permissions": [
     "https://www.roblox.com/*",
@@ -22,15 +23,18 @@
     "default_popup": "popup.html",
     "default_title": "RoVex"
   },
+  "web_accessible_resources": [
+    { "resources": ["icons/rovex-128.png"], "matches": ["https://www.roblox.com/*"] }
+  ],
   "content_scripts": [
     {
-      "matches": ["https://www.roblox.com/*"],
+      "matches": ["https://www.roblox.com/*", "https://create.roblox.com/store/*"],
       "js": ["assets/navigation-bridge.js"],
       "run_at": "document_start",
       "world": "MAIN"
     },
     {
-      "matches": ["https://www.roblox.com/*"],
+      "matches": ["https://www.roblox.com/*", "https://create.roblox.com/store/*"],
       "js": ["assets/content.js"],
       "run_at": "document_start"
     }

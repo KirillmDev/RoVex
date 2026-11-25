@@ -17,7 +17,9 @@ export type SettingsMount = {
   unmount: () => void;
 };
 
-function isDarkTheme() {
+function isDarkTheme(target: HTMLElement) {
+  const effective = getComputedStyle(target).colorScheme;
+  if (effective === 'light' || effective === 'dark') return effective === 'dark';
   const explicitTheme =
     document.documentElement.getAttribute('data-theme') ??
     document.documentElement.getAttribute('color-scheme');
@@ -58,7 +60,7 @@ export function mountSettings(target: HTMLElement): SettingsMount {
   };
   sync();
 
-  const updateTheme = () => host.classList.toggle('ct-dark', isDarkTheme());
+  const updateTheme = () => host.classList.toggle('ct-dark', isDarkTheme(target));
   updateTheme();
   const themeObserver = new MutationObserver(updateTheme);
   themeObserver.observe(document.documentElement, {

@@ -8,6 +8,8 @@ describe('Copy Asset ID extraction', () => {
     expect(extractAssetId('/en-us/library/987654/example-asset')).toBe('987654');
     expect(extractAssetId('/games/123456/example')).toBeNull();
     expect(extractAssetId('/catalog/not-a-number/example')).toBeNull();
+    expect(extractAssetId('/store/asset/148548')).toBe('148548');
+    expect(extractAssetId('/bundles/1234/asset/4321')).toBeNull();
   });
 
   it('inserts its control into the page content instead of a floating layer', async () => {

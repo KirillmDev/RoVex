@@ -21,6 +21,7 @@ import {
 import { GLOBAL_KEY, featureKey } from '../storage/schema';
 import { featureMessage, message } from '../localization/messages';
 import { SettingField } from '../components/SettingField';
+import { About } from './About';
 
 type Records = Record<string, FeatureRecord>;
 
@@ -49,9 +50,12 @@ function closeSettings() {
   window.dispatchEvent(new CustomEvent('creator-toolkit:navigation'));
 }
 
-const availableCategories = categories.filter((category) =>
-  featureRegistry.some((feature) => feature.category === category.id),
-);
+const availableCategories = [
+  ...categories.filter((category) =>
+    featureRegistry.some((feature) => feature.category === category.id),
+  ),
+  { id: 'about', title: message('about_heading', 'About RoVex'), description: '', site: 'roblox' },
+];
 
 export function SettingsApp() {
   const [globalEnabled, setGlobalEnabled] = useState(true);
@@ -235,8 +239,11 @@ export function SettingsApp() {
         <div className="ct-content">
           <div className="ct-content-header">
             <h2>{query ? 'Search results' : selected.title}</h2>
-            <p>{query ? `Settings matching “${query}”` : selected.description}</p>
+            {(query || selected.description) && (
+              <p>{query ? `Settings matching “${query}”` : selected.description}</p>
+            )}
           </div>
+          {!query && selectedCategory === 'about' && <About />}
           {!query.trim() && selectedCategory === 'website-customization' && (
             <div className="ct-native-preferences">
               <div>
@@ -330,23 +337,12 @@ export function SettingsApp() {
                 </article>
               );
             })}
-            {!visibleFeatures.length && (
+            {!visibleFeatures.length && (query || selectedCategory !== 'about') && (
               <div className="ct-empty">No settings match this search.</div>
             )}
           </div>
         </div>
       </div>
-      <footer className="ct-credits">
-        <p>Creator Hub support is deferred.</p>
-        <p>
-          Owner <a href="https://www.roblox.com/users/10436912462/profile">Vexor</a>
-        </p>
-        <p>
-          Developers <a href="https://www.roblox.com/users/4828786884/profile">Othrylz</a>
-          {' and '}
-          <a href="https://www.roblox.com/users/11153363529/profile">DevNamedKirill</a>
-        </p>
-      </footer>
       {preview && (
         <section className="ct-import-panel" role="region" aria-labelledby="ct-import-title">
           <div className="ct-import-copy">
