@@ -44,6 +44,44 @@ const fixture = `<!doctype html>
 
 const owner = (id: string) => `[data-creator-toolkit-owner="${id}"]`;
 
+test('keeps Quick Play visible on touch and preserves the original card link', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ hasTouch: true, isMobile: true });
+  try {
+    const page = await context.newPage();
+    await page.route('https://www.roblox.com/**', (route) =>
+      route.fulfill({ contentType: 'text/html', body: fixture }),
+    );
+    await page.addInitScript(() => {
+      const quick = 'creatorToolkit.feature.quick-play';
+      (window as any).chrome = {
+        storage: {
+          local: {
+            get: async (keys: string[]) =>
+              keys.includes(quick) ? { [quick]: { enabled: true } } : {},
+            set: async () => undefined,
+          },
+          onChanged: { addListener() {} },
+        },
+        runtime: { onMessage: { addListener() {} } },
+      };
+    });
+    await page.goto('https://www.roblox.com/charts');
+    await page.addScriptTag({ path: 'dist/assets/content.js' });
+    const tile = page.locator('.game-card-container');
+    await expect(tile.locator(owner('quick-play'))).toHaveCSS('opacity', '1');
+    await expect(tile.locator(owner('quick-play'))).toHaveAttribute(
+      'href',
+      'roblox://experiences/start?placeId=19',
+    );
+    await tile.getByRole('link', { name: 'Second', exact: true }).tap();
+    await expect(page).toHaveURL('https://www.roblox.com/games/19/Second');
+  } finally {
+    await context.close();
+  }
+});
+
 test('renders, updates, and cleans up expansion features using the built content bundle', async ({
   page,
 }) => {
