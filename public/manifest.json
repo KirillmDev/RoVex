@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "RoVex",
+  "version": "0.5.0",
+  "description": "Customizable shortcuts and page tools for the Roblox website.",
+  "permissions": ["storage", "contextMenus", "clipboardWrite"],
+  "host_permissions": [
+    "https://www.roblox.com/*",
+    "https://apis.roblox.com/*",
+    "https://games.roblox.com/*",
+    "https://thumbnails.roblox.com/*",
+    "https://users.roblox.com/*",
+    "https://economy.roblox.com/*",
+    "https://groups.roblox.com/*"
+  ],
+  "background": {
+    "service_worker": "assets/background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "RoVex"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.roblox.com/*"],
+      "js": ["assets/navigation-bridge.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://www.roblox.com/*"],
+      "js": ["assets/content.js"],
+      "run_at": "document_start"
+    }
+  ]
+}
