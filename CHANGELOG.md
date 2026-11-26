@@ -4,6 +4,10 @@ This log records notable changes. Dates for historical development snapshots rec
 
 ## [Unreleased]
 
+- Added Contributors, registry-backed credits, contribution dialogs, combined Settings filters and persistent presentation preferences.
+- Added local Streamer Mode, a desktop sidebar collapse control and an on-demand public server directory.
+- Reworked Quick Play to reserve its own action row and show a launch dialog. Added optional categories and card actions to existing experience bookmarks.
+
 ## [0.6.0] - 2026-11-25
 
 Development candidate for the Core Architecture & Foundation Update.

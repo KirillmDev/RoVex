@@ -1,5 +1,20 @@
 # RoVex 0.6.0 feature audit
 
+## Advanced client-side additions
+
+The unpacked build loaded the public server directory on Crossroads in a signed-out live Chromium session. The same run passed the existing Marketplace, community and Store checks. The new signed-in controls were tested with Chromium fixtures.
+
+| Surface                           | Evidence to collect before release                                                                                                                                                                                    |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Contributors and Settings filters | Chromium exercises sorting controls, the contribution dialog, focus restoration, combined filters, profile fallback and preference persistence. Verify public headshots and both native themes on an installed build. |
+| Quick Play and launch             | Chromium covers touch, mouse, the reserved action row and the launch dialog. The operating system chooses its registered handler. Verify the Roblox handler on a machine with the client installed.                   |
+| Public server directory           | Chromium fixtures cover pagination, errors and full-server filtering. Results are snapshots of loaded public pages.                                                                                                   |
+| Streamer Mode                     | Chromium covers late content, balance reveal and navigation remasking. Test additional supported account layouts before capturing a screen. Visual masking starts after settings load.                                |
+| Collapse Sidebar                  | Chromium covers desktop dimensions and disabling. Verify native scroll, badge positioning and legacy sidebar variants on a signed-in account.                                                                         |
+| Saved experience categories       | Existing ungrouped records remain readable. Verify grouping and filtering on a real Home feed.                                                                                                                        |
+
+See [backend feasibility](BACKEND-FEASIBILITY.md) for server metadata, deferred integrations and operating cost estimates.
+
 The 33 website feature IDs and storage keys were reviewed in the registry and implementation. Each row records the feature's entry point and evidence. Unit tests and Chromium fixtures exercise extension code against controlled inputs. Native DOM checks describe the Roblox site itself. The signed-in built-in browser did not have RoVex loaded. Treat checks on the owner’s verified account, desktop client, and sensitive account surfaces as manual.
 
 The common lifecycle checks route eligibility, storage settings, ownership, SPA cleanup, and duplicate prevention. Data features use the background request allowlist, bounded caching, and error handling. Visual features should inherit the active Roblox semantic colors. The native desktop and narrow reference was used for layout review.

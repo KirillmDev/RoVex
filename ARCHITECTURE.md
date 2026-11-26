@@ -1,6 +1,6 @@
 # RoVex architecture
 
-RoVex 0.6.0 keeps 33 website features on `www.roblox.com`. Historic Creator Hub definitions remain in source for compatibility but the manifest installs no scripts there.
+The current 0.6.0 draft preserves the original 33 website feature IDs and adds Streamer Mode, Collapse Sidebar, and the public server directory. Creator Store assets use a scoped content script. Historic Creator Hub dashboard definitions remain in source.
 
 | Directory                                         | Responsibility                                                                                    |
 | ------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
@@ -33,3 +33,9 @@ The registry supplies feature defaults and option schemas. Settings retain the s
 Put reviewed runtime icons, fonts, or images in `public/` only when they must be addressable by the extension. Import small feature-specific source assets from their modules when possible. The moved Roblox2016 and RobloxRigs resources are in ignored `resources/local-reference/`. Their redistribution rights are unverified and they are outside the Vite public directory.
 
 `npm run build` writes `dist/manifest.json`, `popup.html`, `_locales/`, and Vite's `assets/` folder containing the three script entry points and hashed popup assets. Keeping `assets/` avoids changing MV3 and packager entry assumptions. `npm run build:dev` writes the same entry layout with source maps to `dist-dev/`.
+
+# Client-side phase references
+
+Contributor identity is defined in `src/registry/contributors.ts`. Each feature supports an explicit list of credited user IDs, validated with the rest of the registry. The project author is the default credit. Add other credits only when the project can verify the attribution. Counts are derived from feature-to-contributor associations. About and Contributors share one public profile loader and the background request cache. Stable is the default status. Beta and Experimental are opt-in metadata, and Locked or Deprecated entries require a reason.
+
+The server directory uses the existing Roblox transport and a `ServerDirectory` interface. The background normalizes public server responses before delivery and keeps only instance ID and occupancy. It drops player lists and other fields. A future data provider and its estimated costs are described in [BACKEND-FEASIBILITY.md](BACKEND-FEASIBILITY.md).
