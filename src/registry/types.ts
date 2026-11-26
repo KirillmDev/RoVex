@@ -1,3 +1,5 @@
+import type { ContributorId } from './contributors';
+
 export type SiteId = 'roblox' | 'creator-hub';
 
 export type CategoryId =
@@ -9,6 +11,7 @@ export type CategoryId =
   | 'communities'
   | 'transactions'
   | 'roblox-navigation'
+  | 'privacy'
   | 'roblox-miscellaneous'
   | 'roblox-developer'
   | 'website-customization'
@@ -89,7 +92,9 @@ export type FeatureDefinition = {
   supportedSites: readonly SiteId[];
   routes: readonly RouteRule[];
   defaultEnabled: boolean;
-  status?: 'stable' | 'experimental' | 'disabled';
+  status?: 'stable' | 'beta' | 'experimental' | 'deprecated' | 'locked' | 'disabled';
+  contributorIds?: readonly ContributorId[];
+  statusReason?: string;
   disabledReason?: string;
   settings: readonly SettingDefinition[];
   dataKeys?: readonly string[];

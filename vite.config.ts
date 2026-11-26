@@ -9,14 +9,22 @@ const entries = {
 };
 
 export default defineConfig(({ mode }): UserConfig => {
+  const development = process.env.ROVEX_BUILD_DEV === '1';
+  const outDir = development ? 'dist-dev' : 'dist';
+  const output = {
+    outDir,
+    sourcemap: development,
+    minify: development ? (false as const) : ('esbuild' as const),
+  };
+  const define = { 'import.meta.env.ROVEX_DEV_DIAGNOSTICS': JSON.stringify(development) };
   if (mode === 'popup') {
     return {
       plugins: [react()],
+      define,
       publicDir: 'public',
       build: {
-        outDir: 'dist',
-        emptyOutDir: true,
-        sourcemap: true,
+        ...output,
+        emptyOutDir: process.env.ROVEX_BUILD_WATCH !== '1',
         rollupOptions: { input: resolve(import.meta.dirname, 'popup.html') },
       },
     };
@@ -25,12 +33,12 @@ export default defineConfig(({ mode }): UserConfig => {
   const name = mode === 'bridge' ? 'navigation-bridge' : mode;
   return {
     plugins: mode === 'content' ? [react()] : [],
+    define,
     publicDir: false,
     build: {
-      outDir: 'dist',
+      ...output,
       emptyOutDir: false,
       copyPublicDir: false,
-      sourcemap: true,
       rollupOptions: {
         input: entries[mode as keyof typeof entries],
         output: {

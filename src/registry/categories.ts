@@ -58,6 +58,13 @@ export const categories: readonly CategoryDefinition[] = [
     order: 80,
   },
   {
+    id: 'privacy',
+    site: 'roblox',
+    title: 'Privacy',
+    description: 'Control what appears on your screen in this browser.',
+    order: 85,
+  },
+  {
     id: 'website-customization',
     site: 'roblox',
     title: 'Website Customization',

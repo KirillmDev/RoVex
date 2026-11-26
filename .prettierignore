@@ -1,4 +1,6 @@
 dist
+dist-dev
+resources/local-reference
 coverage
 playwright-report
 test-results

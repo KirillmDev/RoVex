@@ -4,6 +4,43 @@ This log records notable changes. Dates for historical development snapshots rec
 
 ## [Unreleased]
 
+- Anchored Settings filters and contributor tooltips to their controls, aligned the global switch and back button, and compacted feature attribution.
+- Refined public developer product cards and loading, added product search, and tightened sidebar and Quick Play integration.
+
+- Added Contributors, registry-backed credits, contribution dialogs, combined Settings filters and persistent presentation preferences.
+- Added local Streamer Mode, a desktop sidebar collapse control and an on-demand public server directory.
+- Reworked Quick Play to reserve its own action row and show a launch dialog. Added optional categories and card actions to existing experience bookmarks.
+
+## [0.6.0] - 2026-11-25
+
+Development candidate for the Core Architecture & Foundation Update.
+
+### Added
+
+- Added an About RoVex Settings section with the manifest version, project links, and team profiles backed by public Roblox metadata and thumbnails.
+- Chrome locale catalog with English fallback, parameterized messages, and registry-driven setting labels.
+- Per-feature settings reset that preserves saved feature data.
+- Development build and watch mode in `dist-dev/`.
+
+### Changed
+
+- Grouped feature modules by responsibility and separated the core runtime, API, settings, shared components, and styles. All 33 website feature IDs and existing storage keys are retained.
+- Moved local Roblox2016 and RobloxRigs reference materials outside the runtime asset tree.
+
+### Fixed
+
+- Restored Marketplace ID and wishlist actions on modern detail titles and enabled the asset ID action on Creator Store routes.
+- Matched the Transactions link to the native sidebar row geometry and fixed verified badge placement on the sidebar account row.
+- Fixed Developer Products being blocked by an empty native Store container and used commerce product IDs in links. Preserved developer product IDs for record identity and hid entries already listed by Roblox.
+- Verified navigation badges support modern account metadata and self-profile links, preserve native badges, and require Roblox to confirm the signed-in account's verification.
+- Developer Products reports availability, empty results, and request failures separately.
+- Quick Play anchors its control within the card interaction boundary without shifting card layout.
+
+### Improved
+
+- Shared DOM observation, lifecycle isolation, abortable API consumers, and bounded request caching and retries.
+- The popup and worker avoid loading website feature modules. Production builds exclude sourcemaps and development references.
+
 ## [0.5.0] - 2026-11-25
 
 ### Fixed

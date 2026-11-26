@@ -1,0 +1,33 @@
+{
+  "extension_description": {
+    "message": "Customizable shortcuts and page tools for the Roblox website."
+  },
+  "settings_heading": { "message": "RoVex Settings" },
+  "about_heading": { "message": "About RoVex" },
+  "about_description": { "message": "Useful tools and customization for the Roblox website." },
+  "about_team": { "message": "Development team" },
+  "about_owner": { "message": "Owner & Founder" },
+  "about_developer": { "message": "Developer" },
+  "about_links": { "message": "Project links" },
+  "about_version": {
+    "message": "Version $version$",
+    "placeholders": { "version": { "content": "$1" } }
+  },
+  "about_github": { "message": "GitHub repository" },
+  "about_releases": { "message": "Releases" },
+  "about_changelog": { "message": "Changelog" },
+  "about_issue": { "message": "Report an issue" },
+  "my_transactions": { "message": "My Transactions" },
+  "reset_feature": { "message": "Reset feature settings" },
+  "quick_play": { "message": "Play" },
+  "verified_account": { "message": "Roblox verified account" },
+  "developer_products": { "message": "Developer products" },
+  "developer_products_loading": { "message": "Loading developer products…" },
+  "developer_products_restricted": {
+    "message": "Roblox does not make developer products available for this experience."
+  },
+  "developer_products_unavailable": {
+    "message": "Developer products are temporarily unavailable. Reopen the Store to retry."
+  },
+  "feature_quick_play_title": { "message": "Quick Play on cards" }
+}

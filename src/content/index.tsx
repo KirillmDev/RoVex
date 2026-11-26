@@ -1,7 +1,7 @@
-import { LifecycleManager } from '../navigation/lifecycle-manager';
-import { initializeStorage } from '../storage/chrome-storage';
+import { LifecycleManager } from '../core/lifecycle-manager';
+import { initializeStorage } from '../storage/initialize';
 import { RobloxSettingsIntegration } from '../sites/roblox/settings-integration';
-import { robloxId } from '../shared/roblox-data';
+import { robloxId } from '../api/roblox-data';
 
 let started = false;
 

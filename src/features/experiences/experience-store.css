@@ -1,0 +1,138 @@
+:host {
+  display: block;
+  margin-block: 12px;
+  color: var(--color-content-emphasis, CanvasText);
+}
+h3 {
+  font: 700 18px/1.4 var(--rovex-font);
+  margin: 0 0 6px;
+}
+p,
+li {
+  font: 14px/1.4 var(--rovex-font);
+}
+p:empty {
+  display: none;
+}
+ul {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
+  gap: var(--rovex-panel-gap);
+}
+li {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: 10px;
+  border-radius: var(--rovex-control-radius);
+  border: 1px solid var(--rovex-control-border);
+}
+li[hidden] {
+  display: none;
+}
+img {
+  width: 100%;
+  max-width: 150px;
+  aspect-ratio: 1;
+  object-fit: contain;
+  border-radius: 6px;
+}
+a {
+  color: inherit;
+  overflow-wrap: anywhere;
+}
+small {
+  color: var(--color-content-muted, CanvasText);
+}
+
+.rovex-store-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 116px), 1fr));
+  gap: 20px 12px;
+}
+.rovex-store-grid .rovex-store-card {
+  display: block;
+  border: 0;
+  border-radius: 8px;
+  padding: 0;
+  min-width: 0;
+}
+.rovex-store-grid .rovex-store-card[hidden] {
+  display: none;
+}
+.rovex-store-link {
+  display: grid;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.rovex-store-link:hover {
+  background: var(--color-state-hover, color-mix(in srgb, currentColor 8%, transparent));
+}
+.rovex-store-link:focus-visible {
+  outline: 2px solid var(--color-system-emphasis, Highlight);
+}
+.rovex-store-link small {
+  font-size: 13px;
+  font-weight: 500;
+}
+.rovex-store-art {
+  display: grid;
+  width: 100%;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 8px;
+}
+.rovex-store-art:empty {
+  background: var(--color-surface-100, Canvas);
+}
+.rovex-store-art img {
+  width: 100%;
+  max-width: none;
+  border-radius: inherit;
+}
+.rovex-store-search {
+  margin-block: 4px 8px;
+  width: min(100%, 280px);
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid var(--rovex-control-border);
+  border-radius: 8px;
+  color: inherit;
+  background: var(--color-surface-0, Canvas);
+  font: 14px/20px var(--rovex-font);
+}
+.rovex-store-loading {
+  display: inline-flex;
+  gap: 4px;
+  margin-inline-end: 8px;
+  vertical-align: middle;
+}
+.rovex-store-loading i {
+  width: 6px;
+  height: 6px;
+  background: currentColor;
+  animation: rovex-store-pulse 1s infinite alternate;
+}
+.rovex-store-loading i:nth-child(2) {
+  animation-delay: 0.18s;
+}
+.rovex-store-loading i:nth-child(3) {
+  animation-delay: 0.36s;
+}
+@keyframes rovex-store-pulse {
+  from {
+    opacity: 0.22;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rovex-store-loading i {
+    animation: none;
+  }
+}

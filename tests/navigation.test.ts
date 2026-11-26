@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { routeMatches, snapshotRoute } from '../src/navigation/routes';
+import { routeMatches, snapshotRoute } from '../src/core/routes';
 import { siteFromHostname } from '../src/sites/site';
 
 describe('multi-site route matching', () => {

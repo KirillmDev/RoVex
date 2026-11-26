@@ -1,58 +1,25 @@
-# Testing Creator Toolkit
+# Testing RoVex
 
-## Automated verification
+Run `npm run format:check`, `npm run verify`, `npm run build:dev`, and `node scripts/validate-build.mjs`. Production validation rejects sourcemaps and reference or test paths. Confirm the development output has maps and still loads as an unpacked extension.
 
-Run the complete non-browser verification pipeline:
+## Automated tiers
 
-```powershell
-npm run verify
-```
+The Settings overlay suite covers scroll, resize, dismissal, visible focus, contributor tooltip sizing, and narrow header alignment. For before/after captures, place the previous content bundle at `resources/local-reference/settings-polish/before-content.js`, build the current extension, then set `ROVEX_SETTINGS_CAPTURE=1` and run the capture test in extension-capable Chromium. It uses actual tab zoom with a local Settings fixture and writes images to the ignored reference folder.
 
-It runs TypeScript, ESLint, Vitest, and the production build.
+`Popover` and `Tooltip` share viewport positioning and a portal root inside the Settings shadow tree. The browser top layer handles clipping and stacking while the portal inherits the Settings theme. The positioning hook tracks the trigger only while a layer is open and dismisses it if the trigger is clipped or detached.
 
-The Vitest suite covers:
+The Store reference files describe RoValra's own card components. RoVex uses the live Roblox Store as the visual baseline, keeping its passes and public product links while styling the added product grid. Signed-in sidebar and Home layout variants remain manual checks.
 
-- Registry validation
-- Both site adapters and route components
-- Feature activation, cleanup, master disable, and DOM recovery
-- Versioned storage defaults and persistence
-- Import validation, preview, and application
-- Unknown-key rejection
-- Full-page settings mount and reversible native-content restoration
-- Settings search and master-switch access
-- Quick Links URL validation, in-page mounting, and UI behavior
-- Verified asset-ID path extraction and in-page control mounting
+- **Vitest:** Tests isolated helpers, storage defaults and migration compatibility, feature lifecycle, API cancellation and caching, localization fallback, ID extraction, and Store DTO normalization.
+- **Chromium fixtures:** Run `npx playwright install chromium` and `npm run test:e2e` after building. The tests load the built bundle with mocked storage and API responses. They cover current-looking navigation, verified and unverified identities, dynamic sidebar counters, a visible Store panel following a hidden placeholder, sale filtering, repeated card-to-button hover, and cleanup on navigation and disable.
+- **Live web:** Set `LIVE_ROBLOX_E2E=1` and use extension-capable Playwright Chromium. The suite loads the built extension in a temporary profile and checks catalog and bundle IDs, Crossroads Store and timestamps, Roblox community creation date, and developer products in Adopt Me and Bee Swarm Simulator. Set `LIVE_ROBLOX_CREATOR_STORE=1` to include the public Creator Store asset smoke check. The suite uses a signed-out browser and opens no purchase controls.
 
-## Browser smoke test
+Set `PLAYWRIGHT_EXECUTABLE_PATH` to a compatible local Chromium executable if needed. CI uses a fresh build and runs the offline fixtures by default.
 
-```powershell
-npm run build
-npm run test:e2e
-```
+See [FEATURE-AUDIT.md](FEATURE-AUDIT.md) for coverage by feature ID.
 
-Playwright uses its managed Chromium by default. To run against an existing local
-Chrome installation instead, set `PLAYWRIGHT_EXECUTABLE_PATH` to the browser
-executable before invoking the command.
+## Signed-in and desktop checks
 
-Playwright serves `dist` locally, supplies a browser API mock, and checks that the popup exposes only the branding, master switch, version, and settings launcher. Install Chromium with `npx playwright install chromium` if no compatible Playwright browser is present.
+Verify on a real verified account that the navbar/sidebar display only the correct verified badge, native badges are preserved, and disabling the feature removes injected badges. Inspect `document.documentElement.dataset.rovexVerifiedStatus` to distinguish missing identity, unavailable verification, unverified status, or an unsupported navigation label. Do not include account data in bug logs.
 
-To exercise the unpacked extension against current public Roblox routes, set
-`LIVE_ROBLOX_E2E=1` as well. This opt-in check visits a Creator Store asset and a
-Roblox game page and verifies the visible Asset ID and Place ID actions.
-
-## Manual testing required
-
-Automated tests do not prove compatibility with Roblox’s live DOM. Before release, manually verify:
-
-- Account navigation entry placement
-- Primary `main` mount selector on the current account page
-- Preservation of Roblox global navigation
-- Native account content restoration on pushState, popstate, reload, and direct link
-- Light and dark theme appearance
-- Mobile-width settings layout
-- Screen-reader labels and keyboard category navigation
-- Quick Links across real Creator Hub SPA transitions
-- Copy Asset ID only on genuine catalog/library asset routes
-- Immediate cleanup when toggles or the master switch are disabled
-
-Record the Roblox UI version or test date when validating selectors.
+Check exact balance, the real Chrome context menu and clipboard, Quick Play launch in the Roblox desktop app, and site layouts with other extensions present. For rendering artifacts, compare the same page with RoVex completely disabled and enabled, then test other extensions and browser hardware acceleration separately. The hover fixture cannot identify GPU overlays or reproduce a recording that is not attached.

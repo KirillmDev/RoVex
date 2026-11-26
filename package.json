@@ -1,11 +1,13 @@
 {
   "name": "rovex",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "npm run build && vite build --watch --mode content",
-    "build": "npm run build:popup && npm run build:background && npm run build:bridge && npm run build:content",
+    "dev": "node scripts/build.mjs --dev --watch",
+    "build:dev": "node scripts/build.mjs --dev",
+    "build": "node scripts/build.mjs",
+    "build:prod": "npm run build",
     "build:popup": "vite build --mode popup",
     "build:background": "vite build --mode background",
     "build:bridge": "vite build --mode bridge",

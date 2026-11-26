@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { featureRegistry } from '../src/registry';
-import { getFeature, getGlobal, initializeStorage, setGlobal } from '../src/storage/chrome-storage';
+import { getFeature, getGlobal, setGlobal } from '../src/storage/chrome-storage';
+import { initializeStorage } from '../src/storage/initialize';
 import { applyImport, createExportDocument, previewImport } from '../src/storage/import-export';
 import { GLOBAL_KEY, featureKey } from '../src/storage/schema';
 import { mockStorage } from './setup';

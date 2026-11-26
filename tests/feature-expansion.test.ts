@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import { idFromLink } from '../src/features/id-context-menu';
-import { quietSidebar } from '../src/features/navigation-tools';
-import { matchesStoreFilter } from '../src/features/experience-store';
-import { robloxEndpoint } from '../src/shared/roblox-data';
+import { idFromLink } from '../src/features/developer/id-context-menu';
+import { quietSidebar } from '../src/features/navigation/navigation-tools';
+import { matchesStoreFilter } from '../src/features/experiences/experience-store';
+import { robloxEndpoint } from '../src/api/roblox-data';
 import { featureDefaults } from '../src/storage/schema';
 import { refreshIdMenu, registerIdMenuListeners } from '../src/background/id-context-menu';
-import { idContextMenu } from '../src/features/id-context-menu';
+import { idContextMenu } from '../src/features/developer/id-context-menu';
 import { setFeature, setGlobal } from '../src/storage/chrome-storage';
 
 describe('Roblox website expansion', () => {

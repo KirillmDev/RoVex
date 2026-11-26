@@ -1,5 +1,6 @@
 import { PRIMARY_SETTINGS_URL } from '../../shared/settings-url';
-import { mountSettings, type SettingsMount } from '../../content/settings/mount';
+import { mountSettings, type SettingsMount } from '../../settings/mount';
+import { watchDom } from '../../core/live-dom';
 
 export const ROBLOX_ACCOUNT_PATH = /^\/(?:[a-z]{2}(?:-[a-z]{2})?\/)?my\/account\/?$/i;
 
@@ -7,6 +8,7 @@ export const ROBLOX_ACCOUNT_PATH = /^\/(?:[a-z]{2}(?:-[a-z]{2})?\/)?my\/account\
 // They must be confirmed during live-site manual testing after each substantial Roblox UI update.
 const MOUNT_TARGET_SELECTORS = ['main.container-main', 'main[role="main"]', 'main'] as const;
 const ACCOUNT_NAV_SELECTORS = [
+  'main.container-main ul.menu-vertical[role="tablist"]',
   'main.container-main ul[role="tablist"]',
   'main[role="main"] ul[role="tablist"]',
   'main ul[role="tablist"]',
@@ -36,24 +38,37 @@ function addAccountNavigationEntry(): void {
     document.querySelector('[data-creator-toolkit-account-entry]')?.remove();
     return;
   }
-  if (document.querySelector('[data-creator-toolkit-account-entry]')) return;
+  const existing = document.querySelector('[data-creator-toolkit-account-entry]');
+  if (isSettingsRoute()) {
+    existing?.remove();
+    return;
+  }
   const list = findFirst(ACCOUNT_NAV_SELECTORS);
-  if (!list) return;
+  const useList = list && getComputedStyle(list).display !== 'none';
+  const heading = useList ? null : findFirst(MOUNT_TARGET_SELECTORS)?.querySelector('h1');
+  if (!useList && !heading) return;
+  if (
+    existing &&
+    (useList ? existing.parentElement === list : heading?.nextElementSibling === existing)
+  )
+    return;
+  existing?.remove();
   const link = document.createElement('a');
-  const item = document.createElement('li');
+  const item = document.createElement(useList ? 'li' : 'div');
   item.dataset.creatorToolkitAccountEntry = 'true';
-  item.setAttribute('role', 'presentation');
+  if (useList) item.setAttribute('role', 'presentation');
   link.href = PRIMARY_SETTINGS_URL;
   link.textContent = 'RoVex Settings';
   link.style.cssText =
     'display:block;padding:8px 10px;color:inherit;font:600 14px/20px "Builder Sans",Arial,sans-serif;';
   item.append(link);
-  list.append(item);
+  if (useList) list.append(item);
+  else heading?.after(item);
 }
 
 export class RobloxSettingsIntegration {
   private mount?: SettingsMount;
-  private observer?: MutationObserver;
+  private readonly scope = new AbortController();
   private queued = false;
   private stopped = false;
   private readonly onRouteChange = () => this.queueReconcile();
@@ -62,9 +77,10 @@ export class RobloxSettingsIntegration {
     window.addEventListener('creator-toolkit:navigation', this.onRouteChange);
     window.addEventListener('popstate', this.onRouteChange);
     window.addEventListener('hashchange', this.onRouteChange);
-    this.observer = new MutationObserver(() => this.queueReconcile());
-    this.observer.observe(document.documentElement, { childList: true, subtree: true });
-    this.reconcile();
+    window.addEventListener('resize', this.onRouteChange, { signal: this.scope.signal });
+    watchDom(this.scope.signal, () => {
+      if (ROBLOX_ACCOUNT_PATH.test(location.pathname) || this.mount) this.queueReconcile();
+    });
   }
 
   private queueReconcile(): void {
@@ -117,7 +133,7 @@ export class RobloxSettingsIntegration {
     window.removeEventListener('creator-toolkit:navigation', this.onRouteChange);
     window.removeEventListener('popstate', this.onRouteChange);
     window.removeEventListener('hashchange', this.onRouteChange);
-    this.observer?.disconnect();
+    this.scope.abort();
     this.mount?.unmount();
     document.querySelector('[data-creator-toolkit-account-entry]')?.remove();
   }

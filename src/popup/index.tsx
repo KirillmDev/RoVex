@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { getGlobal, initializeStorage, setGlobal } from '../storage/chrome-storage';
+import { getGlobal, setGlobal } from '../storage/chrome-storage';
 import './popup.css';
 
 export function Popup() {
@@ -8,7 +8,7 @@ export function Popup() {
   const [status, setStatus] = useState('');
 
   useEffect(() => {
-    void initializeStorage().then(async () => setEnabled((await getGlobal()).enabled));
+    void getGlobal().then(({ enabled }) => setEnabled(enabled));
   }, []);
 
   return (

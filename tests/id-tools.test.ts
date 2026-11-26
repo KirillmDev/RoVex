@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { extractAssetId } from '../src/features/copy-asset-id/copy-asset-id';
-import { extractCommunityId } from '../src/features/copy-community-id/copy-community-id';
-import { extractPlaceId } from '../src/features/copy-place-id/copy-place-id';
-import { extractUniverseId } from '../src/features/copy-universe-id/copy-universe-id';
-import { extractUserId } from '../src/features/copy-user-id/copy-user-id';
+import { extractAssetId } from '../src/features/marketplace/copy-asset-id';
+import { extractCommunityId } from '../src/features/communities/copy-community-id';
+import { extractPlaceId } from '../src/features/experiences/copy-place-id';
+import { extractUniverseId } from '../src/features/experiences/copy-universe-id';
+import { extractUserId } from '../src/features/profile/copy-user-id';
 
 describe('verified page ID extractors', () => {
   it('recognizes Creator Store and legacy asset URLs', () => {

@@ -1,4 +1,3 @@
-import { featureRegistry } from '../registry';
 import type { FeatureDefinition, FeatureRecord } from '../registry/types';
 import {
   CURRENT_SCHEMA_VERSION,
@@ -62,15 +61,10 @@ export async function setFeature(feature: FeatureDefinition, value: FeatureRecor
   });
 }
 
-export async function initializeStorage(): Promise<void> {
-  await migrateStorage();
-  const keys = [GLOBAL_KEY, ...featureRegistry.map(({ id }) => featureKey(id))];
-  const existing = await chrome.storage.local.get(keys);
-  const updates: Record<string, unknown> = {};
-  if (!(GLOBAL_KEY in existing)) updates[GLOBAL_KEY] = defaultGlobal();
-  for (const feature of featureRegistry) {
-    const key = featureKey(feature.id);
-    if (!(key in existing)) updates[key] = featureDefaults(feature);
-  }
-  if (Object.keys(updates).length) await chrome.storage.local.set(updates);
+/** Reset configuration without deleting local data such as bookmarks. */
+export async function resetFeatureSettings(feature: FeatureDefinition): Promise<FeatureRecord> {
+  const current = await getFeature(feature);
+  const next = { ...featureDefaults(feature), data: current.data };
+  await setFeature(feature, next);
+  return next;
 }

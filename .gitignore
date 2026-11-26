@@ -1,5 +1,6 @@
 node_modules/
 dist/
+dist-dev/
 coverage/
 playwright-report/
 test-results/
@@ -27,4 +28,5 @@ storage-state*.json
 # Local reference material. Redistribution rights are unverified.
 /Roblox2016/
 /RobloxRigs/
+/resources/local-reference/
 /RoValra*/

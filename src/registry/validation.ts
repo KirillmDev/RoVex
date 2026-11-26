@@ -4,6 +4,7 @@ import type {
   RegistryValidationResult,
   SettingDefinition,
 } from './types';
+import { contributors } from './contributors';
 
 const ID_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 
@@ -47,6 +48,17 @@ export function validateRegistry(
       errors.push(`${feature.id}: category site is not listed in supportedSites.`);
     if (feature.status === 'disabled' && !feature.disabledReason)
       errors.push(`${feature.id}: disabled features require a reason.`);
+    if (
+      (feature.status === 'locked' || feature.status === 'deprecated') &&
+      !feature.statusReason?.trim()
+    )
+      errors.push(`${feature.id}: this status requires an explanation.`);
+    const credited = feature.contributorIds ?? [];
+    if (
+      new Set(credited).size !== credited.length ||
+      credited.some((id) => !contributors.some((member) => member.id === id))
+    )
+      errors.push(`${feature.id}: invalid contributor attribution.`);
     if (!feature.supportedSites.length) errors.push(`${feature.id}: no supported sites.`);
     if (!feature.routes.length) errors.push(`${feature.id}: no route rules.`);
     if (!feature.availability.trim()) errors.push(`${feature.id}: missing availability guidance.`);
