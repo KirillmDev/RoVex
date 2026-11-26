@@ -196,6 +196,10 @@ test('renders, updates, and cleans up expansion features using the built content
   await expect(page.locator('.game-stat time')).toHaveCount(2);
   await expect(page.locator('.game-stat time').first()).toHaveAttribute('datetime', stamp);
   await expect(page.locator(owner('view-developer-products'))).toContainText('19 Robux');
+  const productSearch = page.getByRole('searchbox', { name: 'Search developer products' });
+  await productSearch.fill('no matching product');
+  await expect(page.getByRole('link', { name: 'Boost', exact: true })).toBeHidden();
+  await productSearch.clear();
   await expect(page.getByRole('link', { name: 'Boost' })).toHaveAttribute(
     'href',
     '/developer-product/50/product/701',

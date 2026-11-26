@@ -27,7 +27,8 @@ import { featureMessage, message } from '../localization/messages';
 import { SettingField } from '../components/SettingField';
 import { About } from './About';
 import { contributors, type ContributorId } from '../registry/contributors';
-import { ContributorSettings, ContributionsDialog, Identity } from './Contributors';
+import { ContributorSettings, ContributionsDialog } from './Contributors';
+import { ContributorBadge } from './ContributorBadge';
 import { featureStatus, useContributorProfiles, type Status } from './contributor-data';
 import { SettingsFilters } from './SettingsFilters';
 
@@ -190,26 +191,17 @@ export function SettingsApp() {
           <p>Customize RoVex enhancements for the Roblox website.</p>
         </div>
         <label className="ct-master">
-          Enable RoVex
-          <div className="ct-search-row">
-            <input
-              className="ct-switch"
-              type="checkbox"
-              checked={globalEnabled}
-              onChange={async (event) => {
-                const enabled = event.target.checked;
-                setGlobalEnabled(enabled);
-                await setGlobal({ enabled });
-              }}
-            />
-            <SettingsFilters
-              statuses={statuses}
-              setStatuses={setStatuses}
-              contributor={contributor}
-              setContributor={setContributor}
-              profiles={profiles}
-            />
-          </div>
+          <span>Enable RoVex</span>
+          <input
+            className="ct-switch"
+            type="checkbox"
+            checked={globalEnabled}
+            onChange={async (event) => {
+              const enabled = event.target.checked;
+              setGlobalEnabled(enabled);
+              await setGlobal({ enabled });
+            }}
+          />
         </label>
         <button className="ct-close" type="button" onClick={closeSettings}>
           Back to Roblox settings
@@ -222,14 +214,23 @@ export function SettingsApp() {
       )}
       <div className="ct-body">
         <aside className="ct-sidebar" aria-label="Settings categories">
-          <input
-            className="ct-search"
-            type="search"
-            placeholder="Search settings"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            aria-label="Search RoVex settings"
-          />
+          <div className="ct-search-row">
+            <input
+              className="ct-search"
+              type="search"
+              placeholder="Search settings"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              aria-label="Search RoVex settings"
+            />
+            <SettingsFilters
+              statuses={statuses}
+              setStatuses={setStatuses}
+              contributor={contributor}
+              setContributor={setContributor}
+              profiles={profiles}
+            />
+          </div>
           <nav className="ct-categories" aria-label="Feature categories">
             {(['roblox'] as const).map((site) => (
               <div className="ct-site-group" key={site}>
@@ -368,14 +369,12 @@ export function SettingsApp() {
                           {contributors
                             .filter((member) => feature.contributorIds?.includes(member.id))
                             .map((member) => (
-                              <button
-                                className="ct-credit"
-                                type="button"
+                              <ContributorBadge
                                 key={member.id}
-                                onClick={() => setDialog(member.id)}
-                              >
-                                <Identity member={member} profile={profiles[member.id]} />
-                              </button>
+                                member={member}
+                                profile={profiles[member.id]}
+                                onOpen={() => setDialog(member.id)}
+                              />
                             ))}
                         </div>
                       )}

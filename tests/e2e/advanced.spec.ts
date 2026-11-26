@@ -55,7 +55,7 @@ test('opens contributor details, combines filters and restores the presentation 
   await expect(page.getByLabel('Show feature contributors')).not.toBeChecked();
   await page.getByLabel('Search RoVex settings').fill('Experiences');
   await page.getByRole('button', { name: 'Filters', exact: true }).click();
-  await page.getByLabel('stable', { exact: true }).check();
+  await page.getByLabel('Stable', { exact: true }).check();
   await page.getByRole('radio', { name: /Othrylz/ }).check();
   await page.keyboard.press('Escape');
   await expect(page.getByText('No settings match this search.')).toBeVisible();

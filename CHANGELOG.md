@@ -4,6 +4,9 @@ This log records notable changes. Dates for historical development snapshots rec
 
 ## [Unreleased]
 
+- Anchored Settings filters and contributor tooltips to their controls, aligned the global switch and back button, and compacted feature attribution.
+- Refined public developer product cards and loading, added product search, and tightened sidebar and Quick Play integration.
+
 - Added Contributors, registry-backed credits, contribution dialogs, combined Settings filters and persistent presentation preferences.
 - Added local Streamer Mode, a desktop sidebar collapse control and an on-demand public server directory.
 - Reworked Quick Play to reserve its own action row and show a launch dialog. Added optional categories and card actions to existing experience bookmarks.

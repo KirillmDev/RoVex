@@ -65,3 +65,17 @@
 [data-rovex-launch] img {
   border-radius: 8px;
 }
+
+.rovex-play-icon {
+  width: 10px;
+  height: 12px;
+  margin-inline-end: 5px;
+  background: currentColor;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+[data-rovex-quick-actions] a {
+  min-width: 0;
+}
+[data-rovex-quick-actions] a:first-child {
+  min-width: 36px;
+}

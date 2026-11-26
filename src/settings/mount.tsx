@@ -2,6 +2,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { SettingsApp } from './SettingsApp';
 import styles from '../styles/settings.css?inline';
 import tokens from '../styles/tokens.css?inline';
+import { OverlayRoot } from '../components/overlay-root';
 
 const ROOT_TAG = 'creator-toolkit-settings-root';
 
@@ -44,7 +45,9 @@ export function mountSettings(target: HTMLElement): SettingsMount {
   const style = document.createElement('style');
   style.textContent = tokens + styles;
   const app = document.createElement('div');
-  shadow.append(style, app);
+  const overlays = document.createElement('div');
+  overlays.className = 'ct-overlay-root';
+  shadow.append(style, app, overlays);
   target.append(host);
 
   const sync = () => {
@@ -72,7 +75,11 @@ export function mountSettings(target: HTMLElement): SettingsMount {
   const media = matchMedia('(prefers-color-scheme: dark)');
   media.addEventListener('change', updateTheme);
   const root: Root = createRoot(app);
-  root.render(<SettingsApp />);
+  root.render(
+    <OverlayRoot.Provider value={overlays}>
+      <SettingsApp />
+    </OverlayRoot.Provider>,
+  );
 
   return {
     host,

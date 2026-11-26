@@ -51,7 +51,10 @@ export const quickPlay: FeatureDefinition = {
           const area = document.createElement('div');
           area.dataset.rovexQuickActions = '';
           const button = ownedElement('a', 'quick-play', signal);
-          button.textContent = `▶ ${message('quick_play', 'Play')}`;
+          const playIcon = document.createElement('span');
+          playIcon.className = 'rovex-play-icon';
+          playIcon.setAttribute('aria-hidden', 'true');
+          button.append(playIcon, message('quick_play', 'Play'));
           const servers = document.createElement('a');
           servers.textContent = 'Servers';
           servers.hidden = record.options['show-servers'] !== true;
@@ -73,7 +76,8 @@ export const quickPlay: FeatureDefinition = {
           );
           area.append(button, servers);
           container.setAttribute(marker, '');
-          container.append(area);
+          if (link.parentElement === container) link.after(area);
+          else container.append(area);
           row = { area, button, servers };
           attached.set(container, row);
         }

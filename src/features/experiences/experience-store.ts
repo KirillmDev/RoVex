@@ -145,9 +145,16 @@ function makeSection(title: string): {
 
 function card(item: Item, href: string): HTMLLIElement {
   const row = document.createElement('li');
+  row.className = 'rovex-store-card';
   const link = document.createElement('a');
+  link.className = 'rovex-store-link';
   link.href = href;
-  link.textContent = item.name;
+  link.setAttribute('aria-label', item.name);
+  const art = document.createElement('span');
+  art.className = 'rovex-store-art';
+  art.setAttribute('aria-hidden', 'true');
+  const name = document.createElement('span');
+  name.textContent = item.name;
   const price = document.createElement('small');
   price.textContent =
     item.onSale === false
@@ -155,7 +162,8 @@ function card(item: Item, href: string): HTMLLIElement {
       : item.price !== undefined
         ? `${item.price.toLocaleString()} Robux`
         : 'Price unavailable';
-  row.append(link, price);
+  link.append(art, name, price);
+  row.append(link);
   return row;
 }
 
@@ -192,11 +200,17 @@ export const developerProducts: FeatureDefinition = {
       if (!store || store.querySelector('.rovalra-dev-products')) return;
       const listeners = new AbortController();
       const section = makeSection(message('developer_products', 'Developer products'));
+      section.grid.className = 'rovex-store-grid';
       section.host.dataset.creatorToolkitOwner = 'view-developer-products';
       section.note.textContent = message(
         'developer_products_loading',
         'Loading developer products…',
       );
+      const loader = document.createElement('span');
+      loader.className = 'rovex-store-loading';
+      loader.setAttribute('aria-hidden', 'true');
+      for (let index = 0; index < 3; index++) loader.append(document.createElement('i'));
+      section.note.prepend(loader);
       active = { panel: store, section: section.host, listeners };
       store.append(section.host);
       loaded ??= loadItems('products', place, signal);
@@ -205,6 +219,12 @@ export const developerProducts: FeatureDefinition = {
         .then(async ({ universe, items, partial }) => {
           if (signal.aborted || !section.host.isConnected) return;
           const rows = new Map<string, HTMLLIElement>();
+          const search = document.createElement('input');
+          search.type = 'search';
+          search.placeholder = 'Search developer products';
+          search.setAttribute('aria-label', search.placeholder);
+          search.className = 'rovex-store-search';
+          if (items.size) section.note.before(search);
           for (const item of items.values()) {
             const row = card(
               item,
@@ -226,12 +246,16 @@ export const developerProducts: FeatureDefinition = {
             );
             let visible = 0;
             let nativeCount = 0;
+            const query = search.value.trim().toLowerCase();
             for (const item of items.values()) {
               const duplicate = nativeLinks.has(
                 `/developer-product/${universe}/product/${item.linkId ?? item.id}`,
               );
               if (duplicate) nativeCount++;
-              const show = !duplicate && matchesStoreFilter(mode, item.onSale);
+              const show =
+                !duplicate &&
+                matchesStoreFilter(mode, item.onSale) &&
+                (!query || item.name.toLowerCase().includes(query));
               const row = rows.get(item.id)!;
               if (row.hidden === show) row.hidden = !show;
               if (show) visible++;
@@ -254,6 +278,7 @@ export const developerProducts: FeatureDefinition = {
             if (section.note.textContent !== feedback) section.note.textContent = feedback;
           };
           store.addEventListener(FILTER_EVENT, render, { signal: listeners.signal });
+          search.addEventListener('input', render, { signal: listeners.signal });
           watchDom(listeners.signal, render);
           const icons = [
             ...new Set([...items.values()].flatMap((item) => (item.icon ? [item.icon] : []))),
@@ -279,7 +304,7 @@ export const developerProducts: FeatureDefinition = {
                   img.alt = '';
                   img.loading = 'lazy';
                   img.src = thumb.imageUrl;
-                  rows.get(item.id)?.prepend(img);
+                  rows.get(item.id)?.querySelector('.rovex-store-art')?.replaceChildren(img);
                 }
             }
           }
