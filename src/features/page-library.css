@@ -31,6 +31,23 @@ li {
   gap: 6px 12px;
   margin: 4px 0;
 }
+li[hidden] {
+  display: none;
+}
+label {
+  display: block;
+  margin: 6px 0;
+}
+input,
+select {
+  max-width: 100%;
+  font: inherit;
+  color: inherit;
+  background: var(--color-surface-0, Canvas);
+  border: 1px solid var(--color-stroke-default, GrayText);
+  border-radius: 8px;
+  padding: 4px 8px;
+}
 a {
   color: inherit;
   overflow-wrap: anywhere;

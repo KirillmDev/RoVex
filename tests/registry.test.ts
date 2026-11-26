@@ -8,6 +8,7 @@ describe('feature registry validation', () => {
     expect(websiteFeatureRegistry.map(({ id }) => id).sort()).toEqual(
       [
         'community-creation-date',
+        'collapse-sidebar',
         'content-width',
         'copy-asset-id',
         'copy-bundle-id',
@@ -24,6 +25,7 @@ describe('feature registry validation', () => {
         'keyboard-search',
         'my-transactions-link',
         'quick-play',
+        'public-server-browser',
         'quiet-sidebar',
         'reading-line-spacing',
         'recent-experiences',
@@ -34,6 +36,7 @@ describe('feature registry validation', () => {
         'site-palette',
         'site-text-scale',
         'store-sale-filter',
+        'streamer-mode',
         'thin-page-scrollbar',
         'thumbnail-corners',
         'underline-reading-links',

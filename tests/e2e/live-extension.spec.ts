@@ -23,6 +23,7 @@ test('injects visible ID actions on current public Roblox routes', async () => {
       'view-developer-products',
       'store-sale-filter',
       'community-creation-date',
+      'public-server-browser',
     ].map((id) => `creatorToolkit.feature.${id}`);
     await worker.evaluate(
       (keys) =>
@@ -76,6 +77,13 @@ test('injects visible ID actions on current public Roblox routes', async () => {
     });
     await page.getByLabel('Sale status').selectOption('off');
     await expect(page.getByRole('heading', { name: 'Public game passes' })).toBeVisible();
+    await page.locator('a[href="#game-instances"]').first().click();
+    const serverDirectory = page.getByRole('heading', { name: 'Public servers in RoVex' });
+    await expect(serverDirectory).toBeVisible();
+    await page.getByRole('button', { name: 'Load public servers' }).click();
+    await expect(page.getByText(/loaded servers|No public servers were returned/)).toBeVisible({
+      timeout: 15_000,
+    });
 
     await page.goto('https://www.roblox.com/communities/7/Roblox', {
       waitUntil: 'domcontentloaded',

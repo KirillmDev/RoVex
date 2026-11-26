@@ -14,7 +14,8 @@ export type DataKind =
   | 'community'
   | 'balance'
   | 'user'
-  | 'self';
+  | 'self'
+  | 'public-servers';
 
 export type RobloxErrorCode = 'invalid' | 'restricted' | 'rate-limit' | 'unavailable';
 export class RobloxApiError extends Error {
@@ -39,6 +40,7 @@ export type RobloxResponses = {
   balance: { robux?: number };
   user: { id?: number | string; name?: string; displayName?: string; hasVerifiedBadge?: boolean };
   self: { id?: number | string; name?: string; displayName?: string };
+  'public-servers': { data?: unknown[]; nextPageCursor?: string | null };
 };
 
 type Endpoint = { url: URL; credentials: RequestCredentials; ttl: number };
@@ -67,6 +69,13 @@ export function robloxEndpoint(kind: unknown, value: unknown, cursor?: unknown):
     case 'games':
       return list
         ? publicData(`https://games.roblox.com/v1/games?universeIds=${list}`, 60_000)
+        : null;
+    case 'public-servers':
+      return id
+        ? publicData(
+            `https://games.roblox.com/v1/games/${id}/servers/Public?limit=25${page ? `&cursor=${encodeURIComponent(page)}` : ''}`,
+            15_000,
+          )
         : null;
     case 'products':
       return id

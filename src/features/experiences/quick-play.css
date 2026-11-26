@@ -1,32 +1,67 @@
-[data-rovex-quick-play='static'] {
-  position: relative;
+[data-rovex-quick-actions] {
+  display: flex;
+  gap: 4px;
+  padding-block: 4px 0;
+  width: 100%;
+  box-sizing: border-box;
 }
-[data-rovex-quick-play] > [data-creator-toolkit-owner='quick-play'] {
-  position: absolute;
-  inset: auto 6px 6px auto;
-  z-index: 2;
+[data-rovex-quick-actions] a,
+[data-rovex-launch] a,
+[data-rovex-launch] button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   min-height: 32px;
-  padding: 4px 10px;
+  padding: 4px 8px;
+  border: 0;
   border-radius: 8px;
-  background: var(--color-action-emphasis-background, #335fff);
-  color: var(--color-action-emphasis-foreground, #fff);
+  color: inherit;
+  background: var(--color-action-standard-background, ButtonFace);
   font:
     600 13px/1.2 'Builder Sans',
     system-ui,
     sans-serif;
+  cursor: pointer;
   text-decoration: none;
-  white-space: nowrap;
+}
+[data-rovex-quick-actions] [hidden] {
+  display: none;
+}
+[data-rovex-quick-actions] a:first-child,
+.rovex-quick-launch {
+  flex: 1;
+  background: var(--color-action-emphasis-background, #335fff) !important;
+  color: var(--color-action-emphasis-foreground, #fff) !important;
+}
+[data-rovex-quick-actions] a:hover,
+[data-rovex-launch] :is(a, button):hover {
+  filter: brightness(0.9);
+}
+[data-rovex-quick-actions] :focus-visible,
+[data-rovex-launch] :focus-visible {
+  outline: 2px solid var(--color-system-emphasis, Highlight);
+  outline-offset: 2px;
 }
 @media (hover: hover) and (pointer: fine) {
-  [data-rovex-quick-play]:not(:hover):not(:focus-within)
-    > [data-creator-toolkit-owner='quick-play'] {
+  [data-rovex-quick-play]:not(:hover):not(:focus-within) > [data-rovex-quick-actions] a {
     opacity: 0;
     pointer-events: none;
   }
 }
-[data-rovex-quick-play] > [data-creator-toolkit-owner='quick-play']:focus-visible {
-  outline: 2px solid var(--color-system-emphasis, Highlight);
-  outline-offset: 2px;
+[data-rovex-launch] {
+  max-width: min(380px, calc(100vw - 24px));
+  padding: 20px;
+  border: 1px solid var(--color-stroke-default, GrayText);
+  border-radius: 12px;
+  background: var(--color-surface-100, Canvas);
+  color: var(--color-content-emphasis, CanvasText);
+}
+[data-rovex-launch]::backdrop {
+  background: rgb(0 0 0 / 0.65);
+}
+[data-rovex-launch] :is(a, button) {
+  margin: 4px;
+}
+[data-rovex-launch] img {
+  border-radius: 8px;
 }

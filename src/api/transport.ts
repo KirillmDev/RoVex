@@ -1,4 +1,5 @@
 import { RobloxApiError, robloxEndpoint } from './roblox-data';
+import { publicServerPage } from './server-directory';
 
 const cache = new Map<string, { expires: number; value: unknown }>();
 const pending = new Map<string, Promise<unknown>>();
@@ -41,7 +42,8 @@ export async function readRobloxData(
     }
     if (response.status === 401 || response.status === 403) throw new RobloxApiError('restricted');
     if (!response.ok) throw new RobloxApiError('unavailable');
-    const value: unknown = await response.json();
+    const body: unknown = await response.json();
+    const value = kind === 'public-servers' ? publicServerPage(body) : body;
     cache.delete(key);
     if (ttl) cache.set(key, { value, expires: Date.now() + ttl });
     if (cache.size > 256) cache.delete(cache.keys().next().value!);

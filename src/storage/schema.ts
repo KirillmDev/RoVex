@@ -3,6 +3,8 @@ import type { FeatureDefinition, FeatureRecord, SettingDefinition } from '../reg
 export const STORAGE_PREFIX = 'creatorToolkit.';
 export const META_KEY = `${STORAGE_PREFIX}meta`;
 export const GLOBAL_KEY = `${STORAGE_PREFIX}global`;
+export const SETTINGS_PRESENTATION_KEY = `${STORAGE_PREFIX}settingsPresentation`;
+export const SIDEBAR_COMPACT_KEY = `${STORAGE_PREFIX}sidebarCompact`;
 export const CURRENT_SCHEMA_VERSION = 1;
 
 export type MetaRecord = { schemaVersion: number; lastMigratedAt?: string };
@@ -67,5 +69,11 @@ export function validateFeatureRecord(feature: FeatureDefinition, raw: unknown):
 }
 
 export function knownStorageKeys(featureIds: readonly string[]): string[] {
-  return [META_KEY, GLOBAL_KEY, ...featureIds.map(featureKey)];
+  return [
+    META_KEY,
+    GLOBAL_KEY,
+    SETTINGS_PRESENTATION_KEY,
+    SIDEBAR_COMPACT_KEY,
+    ...featureIds.map(featureKey),
+  ];
 }

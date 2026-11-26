@@ -87,7 +87,7 @@ describe('0.6.0 foundation', () => {
     await setFeature(feature, { enabled: true, options: {}, data: { entries: [{ id: '42' }] } });
     expect(await resetFeatureSettings(feature)).toEqual({
       enabled: false,
-      options: {},
+      options: { 'card-actions': false },
       data: { entries: [{ id: '42' }] },
     });
   });

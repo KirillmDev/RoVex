@@ -3,11 +3,8 @@ import { experiencePath } from '../../api/roblox-data';
 import { ownedElement, watchDom } from '../../core/live-dom';
 import { message } from '../../localization/messages';
 import styles from './quick-play.css?inline';
-
-const links =
-  'a.game-card-link[href], a.sdui-game-tile-wrapper[href], a.sdui-game-tile-primary[href], [data-testid="wide-game-tile"] a[href*="/games/"]';
-const tiles =
-  '[data-testid="wide-game-tile"], .game-card-container, .game-card, .sdui-game-tile-wrapper, [data-testid^="sdui-carousel-item"]';
+import { openLaunchDialog } from './launch-dialog';
+import { experienceCardLinks as links, experienceCardWrapper } from './cards';
 const native =
   '.sdui-play-button, [data-testid="quick-play-button"], [class*="rovalra-quick-play"], [class*="rovalra-quickplay"]';
 const marker = 'data-rovex-quick-play';
@@ -21,14 +18,19 @@ export const quickPlay: FeatureDefinition = {
   supportedSites: ['roblox'],
   routes: [{ hostnames: ['www.roblox.com'] }],
   defaultEnabled: false,
-  settings: [],
-  activate({ signal }) {
-    const attached = new Map<Element, HTMLAnchorElement>();
+  settings: [
+    { key: 'show-servers', kind: 'boolean', label: 'Show Servers shortcut', default: true },
+  ],
+  activate({ signal, record }) {
+    const attached = new Map<
+      Element,
+      { area: HTMLElement; button: HTMLAnchorElement; servers: HTMLAnchorElement }
+    >();
     const style = ownedElement('style', 'quick-play-style', signal);
     style.textContent = styles;
     document.head.append(style);
-    const remove = (tile: Element, play: HTMLAnchorElement) => {
-      play.remove();
+    const remove = (tile: Element, area: HTMLElement) => {
+      area.remove();
       tile.removeAttribute(marker);
       attached.delete(tile);
     };
@@ -40,41 +42,57 @@ export const quickPlay: FeatureDefinition = {
           url.origin === 'https://www.roblox.com'
             ? experiencePath.exec(url.pathname)?.[1]
             : undefined;
-        if (!place || link.closest('[data-testid="event-experience-link"]')) continue;
-        const tile = link.closest(tiles);
-        const container = tile?.closest('a') ? tile.closest('a')?.parentElement : tile;
-        if (
-          !container ||
-          container.matches('a') ||
-          found.has(container) ||
-          container.querySelector(native) ||
-          container.querySelectorAll(links).length > 2
-        )
-          continue;
+        if (!place) continue;
+        const container = experienceCardWrapper(link);
+        if (!container || found.has(container) || container.querySelector(native)) continue;
         found.add(container);
-        let button = attached.get(container);
-        if (!button?.isConnected) {
-          button = ownedElement('a', 'quick-play', signal);
+        let row = attached.get(container);
+        if (!row?.area.isConnected) {
+          const area = document.createElement('div');
+          area.dataset.rovexQuickActions = '';
+          const button = ownedElement('a', 'quick-play', signal);
           button.textContent = `▶ ${message('quick_play', 'Play')}`;
-          container.setAttribute(
-            marker,
-            getComputedStyle(container).position === 'static' ? 'static' : 'positioned',
+          const servers = document.createElement('a');
+          servers.textContent = 'Servers';
+          servers.hidden = record.options['show-servers'] !== true;
+          button.addEventListener(
+            'click',
+            (event) => {
+              if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+              const place = button.dataset.place;
+              const cardLink = container.querySelector<HTMLAnchorElement>(links);
+              if (!place || !cardLink) return;
+              event.preventDefault();
+              const name =
+                cardLink.getAttribute('aria-label') ||
+                cardLink.textContent?.trim() ||
+                'Roblox experience';
+              openLaunchDialog(place, name, cardLink.querySelector('img')?.currentSrc, signal);
+            },
+            { signal },
           );
-          container.append(button);
-          attached.set(container, button);
+          area.append(button, servers);
+          container.setAttribute(marker, '');
+          container.append(area);
+          row = { area, button, servers };
+          attached.set(container, row);
         }
+        const { button, servers } = row;
+        button.dataset.place = place;
         const href = `roblox://experiences/start?placeId=${place}`;
         if (button.getAttribute('href') !== href) button.href = href;
+        const serversHref = `/games/${place}#!/game-instances`;
+        if (servers.getAttribute('href') !== serversHref) servers.href = serversHref;
         const title = link.getAttribute('aria-label') || link.textContent?.trim() || 'experience';
         const label = message('quick_play_title', 'Play $1', title);
         if (button.getAttribute('aria-label') !== label) button.setAttribute('aria-label', label);
       }
-      for (const [tile, play] of attached) if (!found.has(tile)) remove(tile, play);
+      for (const [tile, { area }] of attached) if (!found.has(tile)) remove(tile, area);
     });
     signal.addEventListener(
       'abort',
       () => {
-        for (const [tile, button] of attached) remove(tile, button);
+        for (const [tile, { area }] of attached) remove(tile, area);
       },
       { once: true },
     );

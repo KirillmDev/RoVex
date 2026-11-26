@@ -22,6 +22,11 @@ import {
 import { idContextMenu } from '../features/developer/id-context-menu';
 import { quickPlay } from '../features/experiences/quick-play';
 import { verifiedNavigationBadges } from '../features/navigation/verified-badges';
+import { contributors } from './contributors';
+import type { FeatureDefinition } from './types';
+import { streamerMode } from '../features/streamer-mode';
+import { collapseSidebar } from '../features/navigation/collapse-sidebar';
+import { serverBrowser } from '../features/experiences/server-browser';
 
 export const featureRegistry = [
   copyUserIdFeature,
@@ -46,7 +51,10 @@ export const featureRegistry = [
   transactionsLink,
   verifiedNavigationBadges,
   idContextMenu,
-] as const;
+  streamerMode,
+  collapseSidebar,
+  serverBrowser,
+].map((feature): FeatureDefinition => ({ contributorIds: [contributors[0].id], ...feature }));
 
 export const websiteFeatureRegistry = featureRegistry.filter((feature) =>
   feature.supportedSites.some((site) => site === 'roblox'),

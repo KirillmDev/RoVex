@@ -171,6 +171,19 @@ test('renders, updates, and cleans up expansion features using the built content
     await expect(play).toHaveCSS('opacity', '1');
   }
   expect(await standard.boundingBox()).toEqual(dimensions);
+  const cardLink = standard.locator('a.game-card-link');
+  const actions = standard.locator('[data-rovex-quick-actions]');
+  const cardBox = (await cardLink.boundingBox())!;
+  const actionBox = (await actions.boundingBox())!;
+  expect(actionBox.y).toBeGreaterThanOrEqual(cardBox.y + cardBox.height);
+  await standard.locator(owner('quick-play')).click();
+  await expect(page.getByRole('dialog', { name: 'Play Second with RoVex' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Open Roblox', exact: true })).toHaveAttribute(
+    'href',
+    'roblox://experiences/start?placeId=19',
+  );
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(standard.locator('a.game-card-link')).toHaveAttribute('href', '/games/19/Second');
   await expect(page.locator(owner('wide-player-counts'))).toContainText('123');
   await wide.evaluate((node) => {
