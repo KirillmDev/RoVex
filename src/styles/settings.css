@@ -612,3 +612,125 @@ select:focus-visible {
 .ct-reset-feature {
   margin-block-start: 8px;
 }
+.ct-search-row {
+  display: flex;
+  align-items: start;
+  gap: 6px;
+}
+.ct-search-row .ct-search {
+  min-width: 0;
+}
+.ct-filter-popover,
+.ct-contributions-dialog {
+  color: var(--ct-text);
+  background: var(--ct-surface);
+  border: 1px solid var(--ct-border);
+  border-radius: 12px;
+  padding: 16px;
+  width: min(520px, calc(100vw - 32px));
+  max-height: 80vh;
+  overflow: auto;
+}
+.ct-contributions-dialog::backdrop {
+  background: rgb(0 0 0 / 0.55);
+}
+.ct-filter-popover fieldset {
+  border: 1px solid var(--ct-border);
+  margin: 0 0 12px;
+  border-radius: 8px;
+}
+.ct-filter-popover label,
+.ct-contributor-panel > label {
+  display: block;
+  margin: 6px 0;
+}
+.ct-contributor-panel input[type='search'],
+.ct-contributor-panel select,
+.ct-filter-popover input[type='search'] {
+  padding: 6px 8px;
+  max-width: 100%;
+  background: var(--ct-page);
+  border: 1px solid var(--ct-border);
+  border-radius: 8px;
+  color: inherit;
+}
+.ct-contributor-tools,
+.ct-credits-inline {
+  display: flex;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.ct-contributor-tools {
+  justify-content: space-between;
+}
+.ct-contributor-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+.ct-contributor-row button {
+  width: 100%;
+  text-align: start;
+  cursor: pointer;
+  background: transparent;
+}
+.ct-contributor-row a {
+  color: inherit;
+}
+.ct-credits-inline {
+  margin-top: 8px;
+}
+.ct-credit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: inherit;
+  cursor: pointer;
+  padding: 4px;
+  text-align: start;
+}
+.ct-credit:hover {
+  background: var(--ct-hover);
+}
+.ct-credit .ct-team-avatar,
+.ct-filter-contributor .ct-team-avatar {
+  width: 22px;
+  height: 22px;
+}
+.ct-credit img,
+.ct-filter-contributor img {
+  width: 100%;
+  height: 100%;
+}
+.ct-filter-popover .ct-filter-contributor,
+.ct-contributions-dialog h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ct-contributions-dialog li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-block-end: 1px solid var(--ct-border);
+}
+.ct-contributions-dialog ul {
+  padding: 0;
+  list-style: none;
+}
+.ct-status {
+  text-transform: capitalize;
+}
+.ct-team-row {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+.ct-team-row > strong {
+  overflow-wrap: anywhere;
+}

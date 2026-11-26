@@ -18,14 +18,22 @@ import {
   resetAllSettings,
   type ImportPreview,
 } from '../storage/import-export';
-import { GLOBAL_KEY, featureKey } from '../storage/schema';
+import {
+  GLOBAL_KEY,
+  SETTINGS_PRESENTATION_KEY as preferencesKey,
+  featureKey,
+} from '../storage/schema';
 import { featureMessage, message } from '../localization/messages';
 import { SettingField } from '../components/SettingField';
 import { About } from './About';
+import { contributors, type ContributorId } from '../registry/contributors';
+import { ContributorSettings, ContributionsDialog, Identity } from './Contributors';
+import { featureStatus, useContributorProfiles, type Status } from './contributor-data';
+import { SettingsFilters } from './SettingsFilters';
 
 type Records = Record<string, FeatureRecord>;
 
-function matchesSearch(feature: FeatureDefinition, query: string) {
+function matchesSearch(feature: FeatureDefinition, query: string, developerMode: boolean) {
   const normalized = query.trim().toLowerCase();
   if (!normalized) return true;
   return [
@@ -33,7 +41,8 @@ function matchesSearch(feature: FeatureDefinition, query: string) {
     feature.description,
     featureMessage(feature.id, 'title', feature.title),
     featureMessage(feature.id, 'description', feature.description),
-    feature.id,
+    categories.find(({ id }) => id === feature.category)?.title ?? '',
+    developerMode ? feature.id : '',
     ...feature.settings.flatMap((setting) => [
       setting.label,
       featureMessage(feature.id, `setting_${setting.key}_label`, setting.label),
@@ -55,6 +64,7 @@ const availableCategories = [
     featureRegistry.some((feature) => feature.category === category.id),
   ),
   { id: 'about', title: message('about_heading', 'About RoVex'), description: '', site: 'roblox' },
+  { id: 'contributors', title: 'Contributors', description: '', site: 'roblox' },
 ];
 
 export function SettingsApp() {
@@ -62,6 +72,13 @@ export function SettingsApp() {
   const [records, setRecords] = useState<Records>({});
   const [selectedCategory, setSelectedCategory] = useState(availableCategories[0].id);
   const [query, setQuery] = useState('');
+  const [statuses, setStatuses] = useState<Status[]>([]);
+  const [contributor, setContributor] = useState<ContributorId | ''>('');
+  const [dialog, setDialog] = useState<ContributorId>();
+  const [target, setTarget] = useState<string>();
+  const [preferences, setPreferences] = useState({ showCredits: true, developerMode: false });
+  const { profiles, state: profilesState } = useContributorProfiles();
+  const filtering = Boolean(query.trim() || statuses.length || contributor);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [importBusy, setImportBusy] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -84,13 +101,41 @@ export function SettingsApp() {
     };
   }, []);
 
+  useEffect(() => {
+    const apply = (value: unknown) => {
+      const stored = value as Partial<typeof preferences> | undefined;
+      setPreferences({
+        showCredits: stored?.showCredits !== false,
+        developerMode: stored?.developerMode === true,
+      });
+    };
+    void chrome.storage.local.get(preferencesKey).then((result) => apply(result[preferencesKey]));
+    const onStorage = (changes: Record<string, chrome.storage.StorageChange>) => {
+      if (changes[preferencesKey]) apply(changes[preferencesKey].newValue);
+    };
+    chrome.storage.onChanged.addListener(onStorage);
+    return () => chrome.storage.onChanged.removeListener(onStorage);
+  }, []);
+  const content = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!target) return;
+    const card = content.current?.querySelector<HTMLElement>(`#feature-${target}`);
+    if (card) {
+      card.scrollIntoView?.({ block: 'nearest' });
+      card.focus();
+    }
+  }, [target, selectedCategory, records]);
+
   const visibleFeatures = useMemo(
     () =>
       featureRegistry.filter(
         (feature) =>
-          matchesSearch(feature, query) && (query || feature.category === selectedCategory),
+          matchesSearch(feature, query, preferences.developerMode) &&
+          (!statuses.length || statuses.includes(featureStatus(feature))) &&
+          (!contributor || feature.contributorIds?.includes(contributor)) &&
+          (filtering || feature.category === selectedCategory),
       ),
-    [query, selectedCategory],
+    [query, selectedCategory, preferences.developerMode, statuses, contributor, filtering],
   );
   const selected =
     availableCategories.find(({ id }) => id === selectedCategory) ?? availableCategories[0];
@@ -130,6 +175,10 @@ export function SettingsApp() {
     const buttons =
       event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('.ct-category');
     buttons?.[next]?.focus();
+    setQuery('');
+    setStatuses([]);
+    setContributor('');
+    setTarget(undefined);
     setSelectedCategory(availableCategories[next].id);
   };
 
@@ -142,16 +191,25 @@ export function SettingsApp() {
         </div>
         <label className="ct-master">
           Enable RoVex
-          <input
-            className="ct-switch"
-            type="checkbox"
-            checked={globalEnabled}
-            onChange={async (event) => {
-              const enabled = event.target.checked;
-              setGlobalEnabled(enabled);
-              await setGlobal({ enabled });
-            }}
-          />
+          <div className="ct-search-row">
+            <input
+              className="ct-switch"
+              type="checkbox"
+              checked={globalEnabled}
+              onChange={async (event) => {
+                const enabled = event.target.checked;
+                setGlobalEnabled(enabled);
+                await setGlobal({ enabled });
+              }}
+            />
+            <SettingsFilters
+              statuses={statuses}
+              setStatuses={setStatuses}
+              contributor={contributor}
+              setContributor={setContributor}
+              profiles={profiles}
+            />
+          </div>
         </label>
         <button className="ct-close" type="button" onClick={closeSettings}>
           Back to Roblox settings
@@ -186,10 +244,13 @@ export function SettingsApp() {
                         className="ct-category"
                         type="button"
                         aria-current={
-                          !query && category.id === selectedCategory ? 'page' : undefined
+                          !filtering && category.id === selectedCategory ? 'page' : undefined
                         }
                         onClick={() => {
                           setQuery('');
+                          setStatuses([]);
+                          setContributor('');
+                          setTarget(undefined);
                           setSelectedCategory(category.id);
                         }}
                         onKeyDown={(event) => handleCategoryKey(event, index)}
@@ -236,15 +297,28 @@ export function SettingsApp() {
             </button>
           </div>
         </aside>
-        <div className="ct-content">
+        <div className="ct-content" ref={content}>
           <div className="ct-content-header">
-            <h2>{query ? 'Search results' : selected.title}</h2>
+            <h2>{filtering ? 'Search results' : selected.title}</h2>
             {(query || selected.description) && (
               <p>{query ? `Settings matching “${query}”` : selected.description}</p>
             )}
           </div>
-          {!query && selectedCategory === 'about' && <About />}
-          {!query.trim() && selectedCategory === 'website-customization' && (
+          {!filtering && selectedCategory === 'about' && <About profiles={profiles} />}
+          {!filtering && selectedCategory === 'contributors' && (
+            <ContributorSettings
+              profiles={profiles}
+              state={profilesState}
+              {...preferences}
+              onOpen={setDialog}
+              onPreferences={(patch) => {
+                const next = { ...preferences, ...patch };
+                setPreferences(next);
+                void chrome.storage.local.set({ [preferencesKey]: next });
+              }}
+            />
+          )}
+          {!filtering && selectedCategory === 'website-customization' && (
             <div className="ct-native-preferences">
               <div>
                 <h3>Roblox browser preferences</h3>
@@ -263,19 +337,48 @@ export function SettingsApp() {
               const record = records[feature.id];
               if (!record) return null;
               return (
-                <article className="ct-card" key={feature.id}>
+                <article
+                  className="ct-card"
+                  key={feature.id}
+                  id={`feature-${feature.id}`}
+                  tabIndex={-1}
+                >
                   <div className="ct-card-head">
                     <div>
                       <h3>
                         {featureMessage(feature.id, 'title', feature.title)}
-                        {feature.status === 'experimental' && (
-                          <span className="ct-status">Experimental</span>
-                        )}
-                        {feature.status === 'disabled' && (
-                          <span className="ct-status">Unavailable</span>
+                        {featureStatus(feature) !== 'stable' && (
+                          <span className="ct-status">{featureStatus(feature)}</span>
                         )}
                       </h3>
                       <p>{featureMessage(feature.id, 'description', feature.description)}</p>
+                      {feature.statusReason && <p>{feature.statusReason}</p>}
+                      {feature.dependencies?.length ? (
+                        <p>
+                          Requires{' '}
+                          {feature.dependencies
+                            .map(
+                              (id) => featureRegistry.find((entry) => entry.id === id)?.title ?? id,
+                            )
+                            .join(', ')}
+                        </p>
+                      ) : null}
+                      {preferences.showCredits && (
+                        <div className="ct-credits-inline">
+                          {contributors
+                            .filter((member) => feature.contributorIds?.includes(member.id))
+                            .map((member) => (
+                              <button
+                                className="ct-credit"
+                                type="button"
+                                key={member.id}
+                                onClick={() => setDialog(member.id)}
+                              >
+                                <Identity member={member} profile={profiles[member.id]} />
+                              </button>
+                            ))}
+                        </div>
+                      )}
                       {feature.status === 'disabled' && feature.disabledReason && (
                         <p className="ct-disabled-reason">{feature.disabledReason}</p>
                       )}
@@ -289,7 +392,7 @@ export function SettingsApp() {
                         featureMessage(feature.id, 'title', feature.title),
                       )}
                       checked={record.enabled}
-                      disabled={feature.status === 'disabled'}
+                      disabled={featureStatus(feature) === 'locked'}
                       onChange={(event) =>
                         void updateFeature(feature, { ...record, enabled: event.target.checked })
                       }
@@ -337,12 +440,30 @@ export function SettingsApp() {
                 </article>
               );
             })}
-            {!visibleFeatures.length && (query || selectedCategory !== 'about') && (
-              <div className="ct-empty">No settings match this search.</div>
-            )}
+            {!visibleFeatures.length &&
+              (filtering || !['about', 'contributors'].includes(selectedCategory)) && (
+                <div className="ct-empty">No settings match this search.</div>
+              )}
           </div>
         </div>
       </div>
+      {dialog && (
+        <ContributionsDialog
+          member={contributors.find(({ id }) => id === dialog)!}
+          profile={profiles[dialog]}
+          developerMode={preferences.developerMode}
+          onClose={() => setDialog(undefined)}
+          onNavigate={(id) => {
+            setDialog(undefined);
+            setQuery('');
+            setStatuses([]);
+            setContributor(id ? '' : dialog);
+            setTarget(id);
+            const feature = featureRegistry.find((entry) => entry.id === id);
+            if (feature) setSelectedCategory(feature.category);
+          }}
+        />
+      )}
       {preview && (
         <section className="ct-import-panel" role="region" aria-labelledby="ct-import-title">
           <div className="ct-import-copy">

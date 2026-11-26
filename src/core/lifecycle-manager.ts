@@ -144,7 +144,10 @@ export class LifecycleManager {
     if (this.stopped) return;
     const route = this.getRoute();
     const candidates = featureRegistry.filter(
-      (feature) => feature.status !== 'disabled' && this.featureMatches(feature, route),
+      (feature) =>
+        feature.status !== 'disabled' &&
+        feature.status !== 'locked' &&
+        this.featureMatches(feature, route),
     );
     const { enabled, records } = await getRuntimeSettings(candidates);
     if (this.stopped) return;
